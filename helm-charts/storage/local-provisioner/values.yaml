@@ -1,0 +1,139 @@
+---
+# Edgecore DeviceManager
+# Copyright 2020-2021 Edgecore Networks, Inc.
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Common options.
+common:
+  # Defines whether to generate service account and role bindings.
+  rbac: true
+
+  # Defines the namespace where provisioner runs
+  namespace: "local-storage"
+
+  # Beta PV.NodeAffinity field is used by default. If running against pre-1.10
+  # k8s version, the `useAlphaAPI` flag must be enabled in the configMap.
+  useAlphaAPI: false
+
+  # Provisioner clean volumes in process by default. If set to true, provisioner
+  # will use Jobs to clean.
+  useJobForCleaning: false
+
+  # Resync period in reflectors will be random between minResyncPeriod and
+  # 2*minResyncPeriod. Default: 5m0s.
+  minResyncPeriod: "5m0s"
+
+  # Defines the name of configmap used by Provisioner
+  configMapName: "local-provisioner-config"
+
+# Configure storage classes.
+classes:
+  - name: "local-hdd" # hard disk volumes
+
+    # Path on the host where local volumes of this storage class are mounted
+    # under.
+    hostDir: "/mnt/local-storage/hdd"
+
+    # Optionally specify mount path of local volumes. By default, we use same
+    # path as hostDir in container.
+    mountDir: false
+
+    blockCleanerCommand:
+    #  Do a quick reset of the block device during its cleanup.
+      - "/scripts/quick_reset.sh"
+    #  or use dd to zero out block dev in two iterations by uncommenting these lines
+    #  - "/scripts/dd_zero.sh"
+    #  - "2"
+    # or run shred utility for 2 iterations
+    #  - "/scripts/shred.sh"
+    #  - "2"
+    # or blkdiscard utility by uncommenting the line below.
+    #  - "/scripts/blkdiscard.sh"
+
+    # Uncomment to create storage class object with default configuration.
+    storageClass: true
+
+    # Avaiable reclaim policies: Delete/Retain, defaults: Delete.
+    reclaimPolicy: "Delete"
+
+  - name: "local-ssd" # solid state disk volumes
+
+    # Path on the host where local volumes of this storage class are mounted
+    # under.
+    hostDir: "/mnt/local-storage/ssd"
+
+    # Optionally specify mount path of local volumes. By default, we use same
+    # path as hostDir in container.
+    mountDir: false
+
+    blockCleanerCommand:
+    #  Do a quick reset of the block device during its cleanup.
+      - "/scripts/quick_reset.sh"
+    #  or use dd to zero out block dev in two iterations by uncommenting these lines
+    #  - "/scripts/dd_zero.sh"
+    #  - "2"
+    # or run shred utility for 2 iterations
+    #  - "/scripts/shred.sh"
+    #  - "2"
+    # or blkdiscard utility by uncommenting the line below.
+    #  - "/scripts/blkdiscard.sh"
+
+    # Uncomment to create storage class object with default configuration.
+    storageClass: true
+
+    # Avaiable reclaim policies: Delete/Retain, defaults: Delete.
+    reclaimPolicy: "Delete"
+
+
+# Configure DaemonSet for provisioner.
+daemonset:
+
+  # Defines the name of a Provisioner
+  name: "local-volume-provisioner"
+
+  # Defines Provisioner's image name including container registry.
+  image: "quay.io/external_storage/local-volume-provisioner:v2.1.0"
+
+  # Defines Image download policy, see kubernetes documentation for available values.
+  imagePullPolicy: 'IfNotPresent'
+
+  # Defines a name of the service account which Provisioner will use to communicate with API server.
+  serviceAccount: "local-storage-admin"
+
+  # If configured KubeConfigEnv will (optionally) specify the location of kubeconfig file on the node.
+  #  kubeConfigEnv: KUBECONFIG
+  kubeConfigEnv: false
+
+  # List of node labels to be copied to the PVs created by the provisioner in a format:
+  #
+  #  nodeLabels:
+  #    - failure-domain.beta.kubernetes.io/zone
+  #    - failure-domain.beta.kubernetes.io/region
+  nodeLabels: []
+
+  # If configured, tolerations will add a toleration field to the DaemonSet PodSpec.
+  #
+  # Node tolerations for local-volume-provisioner scheduling to nodes with taints.
+  # Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  # If configured, resources will set the requests/limits field to the Daemonset PodSpec.
+  # Ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+  resources: {}
+

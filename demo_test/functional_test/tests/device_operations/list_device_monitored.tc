@@ -1,0 +1,58 @@
+#!/bin/bash  
+
+# Edgecore DeviceManager
+# Copyright 2020-2021 Edgecore Networks, Inc.
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+./dm showdevices
+./dm attach $1:$2:120 $3:$4:100
+model_1=`./dm getredfishmodel $1:$2:""|sed 's/ /_/'`
+[ "$model_1" == "Redfish_PSME" ] && set_output_1=`./dm setsessionservice $1:$2:"":true:300`
+token_1=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
+model_1=`./dm getredfishmodel $1:$2:$token_1|sed 's/ /_/'`
+model_2=`./dm getredfishmodel $3:$4:""|sed 's/ /_/'`
+[ "$model_2" == "Redfish_PSME" ] && set_output_2=`./dm setsessionservice $3:$4:"":true:300`
+token_2=`./dm logindevice $3:$4:$7:$8| cut -d' ' -f4`
+model_2=`./dm getredfishmodel $3:$4:$token_2|sed 's/ /_/'`
+if [ $model_1 == "OpenBmc" -o $model_2 == "OpenBmc" ]; then
+[ $model_1 == "OpenBmc" ] && model=$model_1
+[ $model_2 == "OpenBmc" ] && model=$model_2
+[ $model_1 != "OpenBmc" ] && echo $set_output_1 && ipPort="$1:$2"
+[ $model_2 != "OpenBmc" ] && echo $set_output_2 && ipPort="$3:$4"
+else
+model=$model_1
+echo $set_output_1
+echo $set_output_2
+fi
+ret=`./dm showdevices`
+echo $ret
+Ip1=`echo $ret|awk -F[:\"\ ] '{print $1}'`
+Ip2=`echo $ret|awk -F[:\"\ ] '{print $3}'`
+Port1=`echo $ret|awk -F[:\"\ ] '{print $2}'`
+Port2=`echo $ret|awk -F[:\"\ ] '{print $4}'`
+if [ "${Ip1}" == "${3}" -a "${Ip2}" == "${1}" ] && [ "${Port1}" == "${4}" -a "${Port2}" == "${2}" ]; then
+    Ip1=${3}
+    Port1=${4}
+    Ip2=${1}
+    Port2=${2}
+fi
+./dm detach $1:$2:$token_1
+./dm detach $3:$4:$token_2
+
+sed -e '/^\/\//d' -e 's/ip1/'${1}'/g; s/port1/'${2}'/g; s/ip2/'${3}'/g; s/port2/'${4}'/g; s/token/'${token}'/g; s/Ip1/'${Ip1}'/g; s/Port1/'${Port1}'/g; s/Ip2/'${Ip2}'/g; s/Port2/'${Port2}'/g; s/ipPort/'${ipPort}'/g' "$9".expected${model} > "$9".e

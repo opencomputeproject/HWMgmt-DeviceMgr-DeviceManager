@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Edgecore DeviceManager
+# Copyright 2020-2021 Edgecore Networks, Inc.
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+./dm attach $1:$2:120
+model=`./dm getredfishmodel $1:$2:""|sed 's/ /_/'`
+[ "$model" == "Redfish_PSME" ] && ./dm setsessionservice $1:$2:"":true:300
+admin_token=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
+model=`./dm getredfishmodel $1:$2:$admin_token|sed 's/ /_/'`
+./dm createaccount $1:$2:$admin_token:admin_1:0penBmc:Administrator
+./dm createaccount $1:$2:$admin_token:operator:0penBmc:Operator
+if [ "$model" == "Redfish_PSME" ]; then
+./dm createaccount $1:$2:$admin_token:readonly:0penBmc:ReadOnlyUser
+elif [ "$model" == "OpenBmc" ]; then
+./dm createaccount $1:$2:$admin_token:readonly:0penBmc:User
+fi
+admin_1_token=`./dm logindevice $1:$2:admin_1:0penBmc| cut -d' ' -f4`
+operator_token=`./dm logindevice $1:$2:operator:0penBmc| cut -d' ' -f4`
+readonly_token=`./dm logindevice $1:$2:readonly:0penBmc| cut -d' ' -f4`
+./dm createaccount $1:$2:$operator_token:admin_2:0penBmc:Administrator
+./dm createaccount $1:$2:$readonly_token:admin_2:0penBmc:Administrator
+./dm createaccount $1:$2:$readonly_token:operator_1:0penBmc:Operator
+./dm deleteaccount $1:$2:$operator_token:admin_1
+./dm deleteaccount $1:$2:$readonly_token:operator
+./dm deleteaccount $1:$2:$operator_token:operator
+./dm deleteaccount $1:$2:$readonly_token:readonly
+./dm deleteaccount $1:$2:$admin_token:admin_1
+./dm deleteaccount $1:$2:$admin_token:operator
+./dm deleteaccount $1:$2:$admin_token:readonly
+./dm detach $1:$2:$admin_token
+
+sed -e '/^\/\//d' -e 's/ip1/'${1}'/g; s/port1/'${2}'/g; s/ip2/'${3}'/g; s/port2/'${4}'/g; s/admin_token/'${token}'/g' "$9".expected${model} > "$9".e

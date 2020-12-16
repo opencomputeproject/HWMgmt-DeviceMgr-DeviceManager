@@ -1,0 +1,139 @@
+---
+# Edgecore DeviceManager
+# Copyright 2020-2021 Edgecore Networks, Inc.
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.common.configMapName }}
+  namespace: {{ .Values.common.namespace }}
+data:
+{{- if .Values.daemonset.nodeLabels }}
+  nodeLabelsForPV: |
+   {{- range $label := .Values.daemonset.nodeLabels }}
+    - {{$label}}
+   {{- end }}
+{{- end }}
+{{- if .Values.common.useAlphaAPI }}
+  useAlphaAPI: "true"
+{{- end }}
+{{- if .Values.common.useJobForCleaning }}
+  useJobForCleaning: "yes"
+{{- end}}
+{{- if .Values.common.minResyncPeriod }}
+  minResyncPeriod: {{ .Values.common.minResyncPeriod | quote }}
+{{- end}}
+  storageClassMap: |
+    {{- range $classConfig := .Values.classes }}
+    {{ $classConfig.name }}:
+       hostDir: {{ $classConfig.hostDir }}
+       mountDir: {{ if $classConfig.mountDir }} {{- $classConfig.mountDir -}} {{ else }} {{- $classConfig.hostDir -}} {{ end }}
+       {{- if $classConfig.blockCleanerCommand }}
+       blockCleanerCommand:
+       {{- range $val := $classConfig.blockCleanerCommand }}
+         - "{{ $val -}}"{{- end}}
+       {{- end }}
+    {{- end }}
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: {{ .Values.daemonset.name }}
+  namespace: {{ .Values.common.namespace }}
+  labels:
+    app: local-volume-provisioner
+spec:
+  selector:
+    matchLabels:
+      app: local-volume-provisioner
+  template:
+    metadata:
+      labels:
+        app: local-volume-provisioner
+    spec:
+      serviceAccountName: {{.Values.daemonset.serviceAccount}}
+{{- if .Values.daemonset.tolerations }}
+      tolerations:
+{{ .Values.daemonset.tolerations | toYaml | trim | indent 8 }}
+{{- end }}
+      containers:
+        - image: "{{ .Values.daemonset.image }}"
+          {{- if .Values.daemonset.imagePullPolicy }}
+          imagePullPolicy: {{ .Values.daemonset.imagePullPolicy | quote }}
+          {{- end }}
+          name: provisioner
+          securityContext:
+            privileged: true
+{{- if .Values.daemonset.resources }}
+          resources:
+{{ .Values.daemonset.resources | toYaml | trim | indent 12 }}
+{{- end }}
+          env:
+          - name: MY_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: MY_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: JOB_CONTAINER_IMAGE
+            value: "{{ .Values.daemonset.image }}"
+          {{- if .Values.daemonset.kubeConfigEnv }}
+            - name: KUBECONFIG
+              value: {{.Values.daemonset.kubeConfigEnv}}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /etc/provisioner/config
+              name: provisioner-config
+              readOnly: true
+            - mountPath: /dev
+              name: provisioner-dev
+            {{- range $classConfig := .Values.classes }}
+            - mountPath: {{ if $classConfig.mountDir }} {{- $classConfig.mountDir -}} {{ else }} {{- $classConfig.hostDir -}} {{ end }}
+              name: {{ $classConfig.name }}
+              mountPropagation: "HostToContainer"
+            {{- end }}
+      volumes:
+        - name: provisioner-config
+          configMap:
+            name: {{ .Values.common.configMapName }}
+        - name: provisioner-dev
+          hostPath:
+            path: /dev
+        {{- range $classConfig := .Values.classes }}
+        - name: {{ $classConfig.name }}
+          hostPath:
+            path: {{ $classConfig.hostDir }}
+        {{- end }}
+
+{{- range $val := .Values.classes }}
+{{- if $val.storageClass }}
+{{- $reclaimPolicy := $val.reclaimPolicy | default "Delete" }}
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ $val.name }}
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: {{ $reclaimPolicy }}
+{{- end }}
+{{- end }}

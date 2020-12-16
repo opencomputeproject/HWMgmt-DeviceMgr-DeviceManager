@@ -1,0 +1,9 @@
+A StorageClass was created: {{ .Values.storageClassName }}
+
+The following PersistentVolumes were created using directories on these nodes:
+
+# PV Name, Host, Size, Host Directory
+{{- range $volume := .Values.volumes }}
+{{ $volume.name }}, {{ $volume.host}}, {{ $volume.size }}, {{ $volume.directory }}
+{{- end }}
+

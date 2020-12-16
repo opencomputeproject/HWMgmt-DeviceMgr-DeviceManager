@@ -1,0 +1,107 @@
+---
+# Edgecore DeviceManager
+# Copyright 2020-2021 Edgecore Networks, Inc.
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+{{- if .Values.common.rbac }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.common.namespace }}
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.daemonset.serviceAccount }}
+  namespace: {{ .Values.common.namespace }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: local-storage-provisioner-pv-binding
+  namespace: {{ .Values.common.namespace }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.daemonset.serviceAccount }}
+  namespace: {{ .Values.common.namespace }}
+roleRef:
+  kind: ClusterRole
+  name: system:persistent-volume-provisioner
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: local-storage-provisioner-node-clusterrole
+  namespace: {{ .Values.common.namespace }}
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: local-storage-provisioner-node-binding
+  namespace: {{ .Values.common.namespace }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.daemonset.serviceAccount }}
+  namespace: {{ .Values.common.namespace }}
+roleRef:
+  kind: ClusterRole
+  name: local-storage-provisioner-node-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+
+{{- if .Values.common.useJobForCleaning }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: local-storage-provisioner-jobs-role
+  namespace: {{ .Values.common.namespace }}
+rules:
+- apiGroups:
+    - 'batch'
+  resources:
+    - jobs
+  verbs:
+    - '*'
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: local-storage-provisioner-jobs-rolebinding
+  namespace: {{ .Values.common.namespace }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.daemonset.serviceAccount }}
+  namespace: {{ .Values.common.namespace }}
+roleRef:
+  kind: Role
+  name: local-storage-provisioner
+  apiGroup: rbac.authorization.k8s.io
+
+{{- end }} # if .Values.common.useJobForCleaning
+{{- end }} # if .Values.common.rbac

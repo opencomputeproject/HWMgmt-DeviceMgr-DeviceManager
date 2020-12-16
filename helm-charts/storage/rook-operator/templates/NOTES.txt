@@ -1,0 +1,4 @@
+This chart creates a Ceph provisioning operator with Rook (similar to Rook's operator.yaml)
+
+It must be run in the {{ .Values.rookSystemNamespace }} namespace
+

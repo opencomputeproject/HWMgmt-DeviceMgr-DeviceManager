@@ -1,0 +1,11 @@
+This chart loads the Rook toolbox container.
+
+Documentation:
+ https://rook.io/docs/rook/v0.8/toolbox.html
+
+Once loaded, run:
+
+kubectl -n {{ .Values.rookClusterNamespace }} exec -it rook-ceph-tools bash
+
+to access the tools
+

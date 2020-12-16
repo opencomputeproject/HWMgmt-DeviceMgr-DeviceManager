@@ -1,0 +1,45 @@
+#!/bin/bash  
+
+# Edgecore DeviceManager
+# Copyright 2020-2021 Edgecore Networks, Inc.
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+./dm attach $1:$2:120
+model=`./dm getredfishmodel $1:$2:""|sed 's/ /_/'`
+[ "$model" == "Redfish_PSME" ] && ./dm setsessionservice $1:$2:"":true:300
+admin_token=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
+model=`./dm getredfishmodel $1:$2:$admin_token|sed 's/ /_/'`
+./dm createaccount $1:$2:$admin_token:admin_1:0penBmc:Administrator
+admin_1_token=`./dm logindevice $1:$2:admin_1:0penBmc| cut -d' ' -f4`
+./dm logoutdevice $1:$2:$admin_1_token:$5
+ret=`./dm deviceaccess $1:$2:$admin_1_token:GET:/redfish/v1/SessionService/Sessions:""`
+userid1=`echo $ret|awk -F[/}] '{print $14}'|awk -F"\"" '{print $1}'`
+echo $ret
+ret=`./dm deviceaccess $1:$2:$admin_1_token:POST:/redfish/v1/SessionService/Sessions:$5/$6`
+userid2=`echo $ret|awk -F[,/] '{print $10}'|awk -F"\"" '{print $1}'`
+echo $ret
+ret=`./dm deviceaccess $1:$2:$admin_1_token:GET:/redfish/v1/SessionService/Sessions:""`
+userId1=`echo $ret|awk -F[{}] '{print $3}'|cut -d'/' -f6|awk -F"\"" '{print $1}'`
+userId2=`echo $ret|awk -F[{}] '{print $5}'|cut -d'/' -f6|awk -F"\"" '{print $1}'`
+echo $ret
+admin_token=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
+./dm deleteaccount $1:$2:$admin_token:admin_1
+./dm detach $1:$2:$admin_token
+
+sed -e '/^\/\//d' -e 's/ip1/'${1}'/g; s/port1/'${2}'/g; s/ip2/'${3}'/g; s/port2/'${4}'/g; s/token/'${token}'/g; s/USERID1/'${userid1}'/g; s/USERID2/'${userid2}'/g; s/USERiD1/'${userId1}'/g; s/USERiD2/'${userId2}'/g' "$9".expected${model} > "$9".e
