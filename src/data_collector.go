@@ -81,8 +81,15 @@ func parseMap(amap map[string]interface{}, level uint, levelPos uint, archive ma
 	for key, val := range amap {
 		switch v := val.(type) {
 		case map[string]interface{}:
-			p := parseMap(v, level, levelPos, archive, keyword)
-			paths = append(paths, p...)
+			if level == levelPos && key == keyword {
+				data, err := json.Marshal(val)
+				if err == nil {
+					paths = append(paths, string(data))
+				}
+			} else {
+				p := parseMap(v, level, levelPos, archive, keyword)
+				paths = append(paths, p...)
+			}
 		case []interface{}:
 			if level == levelPos && key == keyword {
 				for _, name := range val.([]interface{}) {

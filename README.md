@@ -33,6 +33,22 @@ Device Manager gets the device details from devices and periodicaly collects dat
 The interface (gRPC) is between Device-Manager and user-application. Device-Manager also registers specific Redfish APIs for
 events from the device like alerts, removal/insertion events. It then publishes data on kafka bus to collect the data.
 
+# Co-Work with Edgecore PSME and OpenBMC Redfish
+```
++-----------------------------+
+|   Edgecore Device Manager   |
++-------------+-------------+-+
+    |        |          |
+    |        |          |
++---v--+ +---v----+ +---v-----+
+| VOLT | | SWITCH | | OpenBMC |
+| PSME | |  PSME  | | Redfish |
++------+ +--------+ +---------+
+```
+The Edgecore Device Manager could manage a wide range of devices (ex: Edgecore XGS-PON/GPON vOLTs, ONL/SONIC Switches, and OpenBMC device).$
+Before you use the Device Manager, you have to install the PSME software to the device.
+More detailed information can be found at [DM-Redfish-PSME](https://github.com/opencomputeproject/DM-Redfish-PSME) and [DM-Redfish-OpenBMC](https://github.com/opencomputeproject/DM-Redfish-OpenBMC).
+
 # Preparation
 The host system need to install necessory packages (ex: git, curl and docker)
 
@@ -43,9 +59,6 @@ sudo apt install git curl unzip
 ```
 
 # Installation Procdures
-
-## Download Device Management
-The all needed files are located in the Edge-core Github. You could use git command to download all files.
 
 ## Install Kubernets environment
 The device management based on the k8s environment to corprate with others PODs (ex: core-kafka-0).

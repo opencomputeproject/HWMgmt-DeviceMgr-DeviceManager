@@ -25,6 +25,8 @@ DEMOTESTLOG = demotest.log
 TESTSDIR := tests
 TESTTAG = tc
 MODEL = $(shell \
+if [ "$1" != "" ]; \
+then \
 pushd . > /dev/null; \
 cd ${DEMOTESTDIR}; \
 ./demotest > ${DEMOTESTLOG} 2>&1 & sleep 2; \
@@ -35,6 +37,7 @@ token=`./dm logindevice $1:$2:$3:$4| cut -d' ' -f4`; \
 ./dm getredfishmodel $1:$2:$$token; \
 ./dm detach $1:$2:$$token > /dev/null; \
 pidof demotest > /dev/null && pkill demotest; \
+fi \
 )
 FILTERTESTS := $(shell \
 $(eval MODEL1:=$(call MODEL,${IP1},${PORT1},${USER1},${PWD1})) \

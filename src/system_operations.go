@@ -189,7 +189,6 @@ func (s *Server) getDeviceTemperature(deviceIPAddress string, token string) (ret
 	}
 	mapData := make(map[string]interface{})
 	dataSlice := []string{}
-
 	var deviceRedfish = []string{RfDeviceTemperature, RfOpenBmcTemperature}
 	deviceRF, id := s.getRedfishAPI(deviceIPAddress, deviceRedfish)
 	tempData, _, statusCode := getHTTPBodyDataByRfAPI(deviceIPAddress, deviceRF, token)
@@ -330,4 +329,65 @@ func (s *Server) getRedfishModel(deviceIPAddress string, token string) (model st
 		}
 	}
 	return s.getManagerModel(deviceIPAddress, token), http.StatusOK, nil
+}
+
+func (s *Server) getCpuUsage(deviceIPAddress string, token string) (retData []string, statusCode int, err error) {
+	userName := s.getUserByToken(deviceIPAddress, token)
+	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
+		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
+		return nil, http.StatusNotFound, errors.New("The user account " + userName + " does not login to this device")
+	}
+	if s.getUserStatus(deviceIPAddress, token, userName) == false {
+		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
+		return nil, http.StatusNotFound, errors.New("The user account " + userName + " is not available in device")
+	}
+	cpuStatus := s.getDeviceData(deviceIPAddress, RfDeviceSystem, token, 4, "CpuStatus")
+	if cpuStatus == nil {
+		logrus.Errorf("Failed to get the CPU status!")
+		return nil, http.StatusNotFound, errors.New("Failed to get the CPU status!")
+	}
+	return cpuStatus, http.StatusOK, nil
+}
+
+func (s *Server) setCpuUsageForEvent(deviceIPAddress string, token string, upperThresholdNonCritical uint32) (statusCode int, err error) {
+	userName := s.getUserByToken(deviceIPAddress, token)
+	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
+		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
+		return http.StatusNotFound, errors.New("The user account " + userName + " does not login to this device")
+	}
+	if s.getUserStatus(deviceIPAddress, token, userName) == false {
+		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
+		return http.StatusNotFound, errors.New("The user account " + userName + " is not available in device")
+	}
+	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
+	privilege := s.getDefineUserPrivilege(deviceIPAddress)
+	if userPrivilege == privilege[2] {
+		logrus.Errorf("The user %s privilege (%s) could not configure CPU usage event to this device %s", userName, privilege[2], deviceIPAddress)
+		return http.StatusBadRequest, errors.New("The user " + userName + " privilege (" + privilege[2] + ") could not configure CPU Usage event")
+	}
+	if upperThresholdNonCritical <= 0 || upperThresholdNonCritical >= 100 {
+		logrus.Errorf("The upperThresholdNonCritical could only configure 0~100")
+		return http.StatusBadRequest, errors.New("The upperThresholdNonCritical could only configure 0~100")
+	}
+	var cpuUsageMap map[string]interface{}
+	jsonBody := []byte(`{"CpuStatus":{"UpperThresholdNonCritical":  0}}`)
+	err = json.Unmarshal(jsonBody, &cpuUsageMap)
+	if err != nil {
+		logrus.Errorf("Error Unmarshal %s", err)
+		return http.StatusInternalServerError, nil
+	}
+	DataMap := cpuUsageMap["CpuStatus"].(map[string]interface{})
+	DataMap["UpperThresholdNonCritical"] = upperThresholdNonCritical
+	_, _, _, statusCode = patchHTTPDataByRfAPI(deviceIPAddress, RfDeviceSystem, token, cpuUsageMap)
+	switch statusCode {
+	case http.StatusBadRequest:
+		logrus.Errorf("The device CPU usage is invalid")
+		return statusCode, errors.New("The device CPU usage is invalid")
+	case http.StatusOK:
+		logrus.Infof("The device CPU usage sent to device successfully")
+		return statusCode, errors.New("The device CPU usage sent to device successfully")
+	default:
+		logrus.Errorf("Failed to configure device CPU usage to device %s, status code %d", deviceIPAddress, statusCode)
+	}
+	return statusCode, nil
 }

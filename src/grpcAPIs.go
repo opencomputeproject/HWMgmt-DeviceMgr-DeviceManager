@@ -1404,7 +1404,7 @@ func (s *Server) SetDeviceTemperatureForEvent(c context.Context, deviceTemperatu
 	var ipAddress, token, memberId string
 	var upperThresholdNonCritical, lowerThresholdNonCritical uint32
 	if deviceTemperature == nil || len(deviceTemperature.IpAddress) == 0 {
-		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, "input frequency info error")
+		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, "input info error")
 	}
 	ipAddress = deviceTemperature.IpAddress
 	token = deviceTemperature.UserToken
@@ -1473,10 +1473,90 @@ func (s *Server) GetRedfishModel(c context.Context, redfishInfo *importer.Redfis
 		errStatus, _ := status.FromError(err)
 		logrus.WithFields(logrus.Fields{
 			"IP address:port": ipAddress,
+			"Model":           model,
 		}).Info(errStatus.Message())
 		return nil, status.Errorf(codes.Code(statusCode), errStatus.Message())
 	}
 	redfishInfoData := new(importer.RedfishInfo)
 	redfishInfoData.RedfishModel = model
 	return redfishInfoData, nil
+}
+
+func (s *Server) GetCpuUsage(c context.Context, redfishInfo *importer.RedfishInfo) (*importer.RedfishInfo, error) {
+	var token, ipAddress string
+	if redfishInfo == nil || len(redfishInfo.IpAddress) == 0 {
+		return nil, status.Errorf(http.StatusBadRequest, "input device data error")
+	}
+	ipAddress = redfishInfo.IpAddress
+	token = redfishInfo.UserToken
+	if msg, ok := s.validateIPAddress(ipAddress); !ok {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress}).Info(msg)
+		return nil, status.Errorf(http.StatusBadRequest, msg)
+	}
+	if s.vlidateDeviceRegistered(ipAddress) == false {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress}).Info("Device ip " + ipAddress + " is not registered")
+		return nil, status.Errorf(http.StatusBadRequest, "Device ip "+ipAddress+" is not registered")
+	}
+	userName := s.getUserByToken(ipAddress, token)
+	if errRet := s.validateDeviceAccountData(ipAddress, userName, ""); errRet != "" {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress,
+			"Username":        userName,
+		}).Info(errRet)
+		return nil, status.Errorf(http.StatusBadRequest, errRet)
+	}
+	usage, statusCode, err := s.getCpuUsage(ipAddress, token)
+	if err != nil && statusCode != http.StatusOK {
+		errStatus, _ := status.FromError(err)
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress,
+			"CPU Usage":       usage,
+		}).Info(errStatus.Message())
+		return nil, status.Errorf(codes.Code(statusCode), errStatus.Message())
+	}
+	redfishInfoData := new(importer.RedfishInfo)
+	redfishInfoData.CpuUsage = usage
+	return redfishInfoData, nil
+
+}
+
+func (s *Server) SetCpuUsageForEvent(c context.Context, deviceCpuUsage *importer.DeviceCpuUsage) (*empty.Empty, error) {
+	var ipAddress, token string
+	var upperThresholdNonCritical uint32
+	if deviceCpuUsage == nil || len(deviceCpuUsage.IpAddress) == 0 {
+		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, "input info error")
+	}
+	ipAddress = deviceCpuUsage.IpAddress
+	token = deviceCpuUsage.UserToken
+	upperThresholdNonCritical = deviceCpuUsage.UpperThresholdNonCritical
+	if msg, ok := s.validateIPAddress(ipAddress); !ok {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress}).Info(msg)
+		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, msg)
+	}
+	if s.vlidateDeviceRegistered(ipAddress) == false {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress}).Info("Device ip " + ipAddress + " is not registered")
+		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, "Device ip "+ipAddress+" is not registered")
+	}
+	userName := s.getUserByToken(ipAddress, token)
+	if errRet := s.validateDeviceAccountData(ipAddress, userName, ""); errRet != "" {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress,
+			"Username":        userName,
+		}).Info(errRet)
+		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, errRet)
+	}
+	statusCode, err := s.setCpuUsageForEvent(ipAddress, token, upperThresholdNonCritical)
+	if err != nil && statusCode != http.StatusOK {
+		errStatus, _ := status.FromError(err)
+		logrus.WithFields(logrus.Fields{
+			"IP address:port":           ipAddress,
+			"UpperThresholdNonCritical": upperThresholdNonCritical,
+		}).Info(errStatus.Message())
+		return &empty.Empty{}, status.Errorf(codes.Code(statusCode), errStatus.Message())
+	}
+	return &empty.Empty{}, nil
 }

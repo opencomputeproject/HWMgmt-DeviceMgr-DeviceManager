@@ -149,10 +149,17 @@ message DeviceTemperature {
 	repeated string tempData = 6;
 }
 
+message DeviceCpuUsage {
+	string IpAddress = 1;
+	string userToken = 2;
+	uint32 upperThresholdNonCritical = 3;
+}
+
 message RedfishInfo {
 	string IpAddress = 1;
 	string userToken = 2;
 	string redfishModel = 3;
+	repeated string cpuUsage = 4;
 }
 
 message Empty {}
@@ -201,4 +208,6 @@ service device_management {
 	rpc GetDeviceTemperatures(DeviceTemperature) returns (DeviceTemperature) {}
 	rpc SetDeviceTemperatureForEvent(DeviceTemperature) returns (google.protobuf.Empty) {}
 	rpc GetRedfishModel(RedfishInfo) returns (RedfishInfo) {}
+	rpc GetCpuUsage(RedfishInfo) returns (RedfishInfo) {}
+	rpc SetCpuUsageForEvent(DeviceCpuUsage) returns (google.protobuf.Empty) {}
 }

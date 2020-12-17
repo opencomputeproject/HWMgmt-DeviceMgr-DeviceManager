@@ -971,6 +971,58 @@ func main() {
 				logrus.Info("getredfishmodel ", ret_msg.RedfishModel)
 				newmessage = ret_msg.RedfishModel
 			}
+		case "getcpustatus":
+			if len(s) != 2 {
+				newmessage = newmessage + "invalid command " + cmdstr
+				break
+			}
+			args := strings.Split(s[1], ":")
+			if len(args) < 3 {
+				newmessage = newmessage + "invalid command " + args[0]
+				break
+			}
+			redfishInfoData := new(importer.RedfishInfo)
+			redfishInfoData.IpAddress = args[0] + ":" + args[1]
+			redfishInfoData.UserToken = args[2]
+			ret_msg, err := cc.GetCpuUsage(ctx, redfishInfoData)
+			if err != nil {
+				errStatus, _ := status.FromError(err)
+				newmessage = errStatus.Message()
+				logrus.Errorf("get redfish model error - status code %v message %v", errStatus.Code(), errStatus.Message())
+			} else {
+				logrus.Info("getcpustatus ", ret_msg.CpuUsage[:])
+				newmessage = strings.Join(ret_msg.CpuUsage[:], " ")
+			}
+		case "setcpustatus":
+			if len(s) != 2 {
+				newmessage = newmessage + "invalid command " + cmdstr
+				break
+			}
+			args := strings.Split(s[1], ":")
+			if len(args) != 4 {
+				newmessage = newmessage + "invalid command " + s[1]
+				break
+			}
+			ip := args[0] + ":" + args[1]
+			token := args[2]
+			upperThresholdNonCritical := args[3]
+			upper, err1 := strconv.ParseUint(upperThresholdNonCritical, 10, 64)
+			if err1 != nil {
+				logrus.Error("ParseUint error!!")
+			} else {
+				redfishInfoData := new(importer.DeviceCpuUsage)
+				redfishInfoData.IpAddress = ip
+				redfishInfoData.UserToken = token
+				redfishInfoData.UpperThresholdNonCritical = uint32(upper)
+				_, err := cc.SetCpuUsageForEvent(ctx, redfishInfoData)
+				if err != nil {
+					errStatus, _ := status.FromError(err)
+					newmessage = newmessage + errStatus.Message()
+					logrus.Errorf("period error - status code %v message %v", errStatus.Code(), errStatus.Message())
+				} else {
+					newmessage = newmessage + cmd + " configured"
+				}
+			}
 		case "devicesoftwareupdate":
 			if len(s) < 2 {
 				newmessage = newmessage + "invalid command length" + cmdstr
@@ -1147,6 +1199,10 @@ getdevicetemperaturedata - get device tempertures infomation
 	Usage: ./dm getdevicetemperaturedata <ip address:port:token>
 setdevicetemperaturedata - configure the device event temperature
 	Usage: ./dm setdevicetemperaturedata <ip address:port:token:member id:upperThresholdNonCritical:lowerThresholdNonCritical>
+getcpustatus - get device CPU usage
+	Usage: ./dm getcpustatus <ip address:port:token>
+setcpustatus - configure the device event CPU usage
+	Usage: ./dm setcpustatus <ip address:port:token:upperThresholdNonCritical>
 devicesoftwareupdate - start to update device and send Multiple Updater (MU) download site
 	Usage: ./dm devicesoftwareupdate <ip address:port:token:MU:<http or https or tftp>:<server IP address:<port or "">:multiple updater download URI>
 devicesoftwareupdate - start to update device and send Network OS (NOS) download site
