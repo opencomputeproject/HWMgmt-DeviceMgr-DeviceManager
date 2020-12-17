@@ -25,7 +25,7 @@ DEMOTESTLOG = demotest.log
 TESTSDIR := tests
 TESTTAG = tc
 MODEL = $(shell \
-if [ "$1" != "" ]; \
+if [ -f ./dm ]; \
 then \
 pushd . > /dev/null; \
 cd ${DEMOTESTDIR}; \
