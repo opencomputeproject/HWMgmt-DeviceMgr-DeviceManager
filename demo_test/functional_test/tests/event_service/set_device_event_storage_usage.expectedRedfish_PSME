@@ -20,7 +20,7 @@
 ip1:port1 attached
 ip1:port1 set ok!
 {"LoadingPercentage":loading1,"UpperThresholdNonCritical":upper1}
-setcpustatus configured
+setstoragestatus configured
 The upperThresholdNonCritical could only configure 1~99
 {"LoadingPercentage":loading2,"UpperThresholdNonCritical":upper2}
 The upperThresholdNonCritical could only configure 1~99

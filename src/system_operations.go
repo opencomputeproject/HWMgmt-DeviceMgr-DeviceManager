@@ -366,8 +366,8 @@ func (s *Server) setCpuUsageForEvent(deviceIPAddress string, token string, upper
 		return http.StatusBadRequest, errors.New("The user " + userName + " privilege (" + privilege[2] + ") could not configure CPU Usage event")
 	}
 	if upperThresholdNonCritical <= 0 || upperThresholdNonCritical >= 100 {
-		logrus.Errorf("The upperThresholdNonCritical could only configure 0~100")
-		return http.StatusBadRequest, errors.New("The upperThresholdNonCritical could only configure 0~100")
+		logrus.Errorf("The upperThresholdNonCritical could only configure 1~99")
+		return http.StatusBadRequest, errors.New("The upperThresholdNonCritical could only configure 1~99")
 	}
 	var cpuUsageMap map[string]interface{}
 	jsonBody := []byte(`{"CpuStatus":{"UpperThresholdNonCritical":  0}}`)
@@ -388,6 +388,128 @@ func (s *Server) setCpuUsageForEvent(deviceIPAddress string, token string, upper
 		return statusCode, errors.New("The device CPU usage sent to device successfully")
 	default:
 		logrus.Errorf("Failed to configure device CPU usage to device %s, status code %d", deviceIPAddress, statusCode)
+	}
+	return statusCode, nil
+}
+
+func (s *Server) getMemoryUsage(deviceIPAddress string, token string) (retData []string, statusCode int, err error) {
+	userName := s.getUserByToken(deviceIPAddress, token)
+	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
+		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
+		return nil, http.StatusNotFound, errors.New("The user account " + userName + " does not login to this device")
+	}
+	if s.getUserStatus(deviceIPAddress, token, userName) == false {
+		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
+		return nil, http.StatusNotFound, errors.New("The user account " + userName + " is not available in device")
+	}
+	memoryStatus := s.getDeviceData(deviceIPAddress, RfDeviceSystem, token, 4, "MemoryStatus")
+	if memoryStatus == nil {
+		logrus.Errorf("Failed to get the memory status!")
+		return nil, http.StatusNotFound, errors.New("Failed to get the memory status!")
+	}
+	return memoryStatus, http.StatusOK, nil
+}
+
+func (s *Server) setMemoryUsageForEvent(deviceIPAddress string, token string, lowerThresholdNonCritical uint32) (statusCode int, err error) {
+	userName := s.getUserByToken(deviceIPAddress, token)
+	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
+		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
+		return http.StatusNotFound, errors.New("The user account " + userName + " does not login to this device")
+	}
+	if s.getUserStatus(deviceIPAddress, token, userName) == false {
+		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
+		return http.StatusNotFound, errors.New("The user account " + userName + " is not available in device")
+	}
+	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
+	privilege := s.getDefineUserPrivilege(deviceIPAddress)
+	if userPrivilege == privilege[2] {
+		logrus.Errorf("The user %s privilege (%s) could not configure memory usage event to this device %s", userName, privilege[2], deviceIPAddress)
+		return http.StatusBadRequest, errors.New("The user " + userName + " privilege (" + privilege[2] + ") could not configure memory Usage event")
+	}
+	if lowerThresholdNonCritical <= 0 || lowerThresholdNonCritical >= 100 {
+		logrus.Errorf("The lowerThresholdNonCritical could only configure 1~99")
+		return http.StatusBadRequest, errors.New("The lowerThresholdNonCritical could only configure 1~99")
+	}
+	var memoryUsageMap map[string]interface{}
+	jsonBody := []byte(`{"MemoryStatus":{"LowerThresholdNonCritical":  0}}`)
+	err = json.Unmarshal(jsonBody, &memoryUsageMap)
+	if err != nil {
+		logrus.Errorf("Error Unmarshal %s", err)
+		return http.StatusInternalServerError, nil
+	}
+	DataMap := memoryUsageMap["MemoryStatus"].(map[string]interface{})
+	DataMap["LowerThresholdNonCritical"] = lowerThresholdNonCritical
+	_, _, _, statusCode = patchHTTPDataByRfAPI(deviceIPAddress, RfDeviceSystem, token, memoryUsageMap)
+	switch statusCode {
+	case http.StatusBadRequest:
+		logrus.Errorf("The device memory usage is invalid")
+		return statusCode, errors.New("The device memory usage is invalid")
+	case http.StatusOK:
+		logrus.Infof("The device memory usage sent to device successfully")
+		return statusCode, errors.New("The device memory usage sent to device successfully")
+	default:
+		logrus.Errorf("Failed to configure device memory usage to device %s, status code %d", deviceIPAddress, statusCode)
+	}
+	return statusCode, nil
+}
+
+func (s *Server) getStorageUsage(deviceIPAddress string, token string) (retData []string, statusCode int, err error) {
+	userName := s.getUserByToken(deviceIPAddress, token)
+	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
+		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
+		return nil, http.StatusNotFound, errors.New("The user account " + userName + " does not login to this device")
+	}
+	if s.getUserStatus(deviceIPAddress, token, userName) == false {
+		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
+		return nil, http.StatusNotFound, errors.New("The user account " + userName + " is not available in device")
+	}
+	storageStatus := s.getDeviceData(deviceIPAddress, RfDeviceSystem, token, 4, "StorageStatus")
+	if storageStatus == nil {
+		logrus.Errorf("Failed to get the memory status!")
+		return nil, http.StatusNotFound, errors.New("Failed to get the memory status!")
+	}
+	return storageStatus, http.StatusOK, nil
+}
+
+func (s *Server) setStorageUsageForEvent(deviceIPAddress string, token string, upperThresholdNonCritical uint32) (statusCode int, err error) {
+	userName := s.getUserByToken(deviceIPAddress, token)
+	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
+		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
+		return http.StatusNotFound, errors.New("The user account " + userName + " does not login to this device")
+	}
+	if s.getUserStatus(deviceIPAddress, token, userName) == false {
+		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
+		return http.StatusNotFound, errors.New("The user account " + userName + " is not available in device")
+	}
+	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
+	privilege := s.getDefineUserPrivilege(deviceIPAddress)
+	if userPrivilege == privilege[2] {
+		logrus.Errorf("The user %s privilege (%s) could not configure storage usage event to this device %s", userName, privilege[2], deviceIPAddress)
+		return http.StatusBadRequest, errors.New("The user " + userName + " privilege (" + privilege[2] + ") could not configure storage Usage event")
+	}
+	if upperThresholdNonCritical <= 0 || upperThresholdNonCritical >= 100 {
+		logrus.Errorf("The upperThresholdNonCritical could only configure 1~99")
+		return http.StatusBadRequest, errors.New("The upperThresholdNonCritical could only configure 1~99")
+	}
+	var storageUsageMap map[string]interface{}
+	jsonBody := []byte(`{"StorageStatus":{"UpperThresholdNonCritical":  0}}`)
+	err = json.Unmarshal(jsonBody, &storageUsageMap)
+	if err != nil {
+		logrus.Errorf("Error Unmarshal %s", err)
+		return http.StatusInternalServerError, nil
+	}
+	DataMap := storageUsageMap["StorageStatus"].(map[string]interface{})
+	DataMap["UpperThresholdNonCritical"] = upperThresholdNonCritical
+	_, _, _, statusCode = patchHTTPDataByRfAPI(deviceIPAddress, RfDeviceSystem, token, storageUsageMap)
+	switch statusCode {
+	case http.StatusBadRequest:
+		logrus.Errorf("The device storage usage is invalid")
+		return statusCode, errors.New("The device storage usage is invalid")
+	case http.StatusOK:
+		logrus.Infof("The device storage usage sent to device successfully")
+		return statusCode, errors.New("The device storage usage sent to device successfully")
+	default:
+		logrus.Errorf("Failed to configure device storage usage to device %s, status code %d", deviceIPAddress, statusCode)
 	}
 	return statusCode, nil
 }

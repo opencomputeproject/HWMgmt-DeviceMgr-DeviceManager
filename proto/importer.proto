@@ -155,11 +155,25 @@ message DeviceCpuUsage {
 	uint32 upperThresholdNonCritical = 3;
 }
 
+message DeviceMemoryUsage {
+	string IpAddress = 1;
+	string userToken = 2;
+	uint32 lowerThresholdNonCritical = 3;
+}
+
+message DeviceStorageUsage {
+	string IpAddress = 1;
+	string userToken = 2;
+	uint32 upperThresholdNonCritical = 3;
+}
+
 message RedfishInfo {
 	string IpAddress = 1;
 	string userToken = 2;
 	string redfishModel = 3;
 	repeated string cpuUsage = 4;
+	repeated string memoryUsage = 5;
+	repeated string storageUsage = 6;
 }
 
 message Empty {}
@@ -210,4 +224,8 @@ service device_management {
 	rpc GetRedfishModel(RedfishInfo) returns (RedfishInfo) {}
 	rpc GetCpuUsage(RedfishInfo) returns (RedfishInfo) {}
 	rpc SetCpuUsageForEvent(DeviceCpuUsage) returns (google.protobuf.Empty) {}
+	rpc GetMemoryUsage(RedfishInfo) returns (RedfishInfo) {}
+	rpc SetMemoryUsageForEvent(DeviceMemoryUsage) returns (google.protobuf.Empty) {}
+	rpc GetStorageUsage(RedfishInfo) returns (RedfishInfo) {}
+	rpc SetStorageUsageForEvent(DeviceStorageUsage) returns (google.protobuf.Empty) {}
 }

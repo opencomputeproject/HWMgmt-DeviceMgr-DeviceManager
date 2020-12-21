@@ -1560,3 +1560,160 @@ func (s *Server) SetCpuUsageForEvent(c context.Context, deviceCpuUsage *importer
 	}
 	return &empty.Empty{}, nil
 }
+
+func (s *Server) GetMemoryUsage(c context.Context, redfishInfo *importer.RedfishInfo) (*importer.RedfishInfo, error) {
+	var token, ipAddress string
+	if redfishInfo == nil || len(redfishInfo.IpAddress) == 0 {
+		return nil, status.Errorf(http.StatusBadRequest, "input device data error")
+	}
+	ipAddress = redfishInfo.IpAddress
+	token = redfishInfo.UserToken
+	if msg, ok := s.validateIPAddress(ipAddress); !ok {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress}).Info(msg)
+		return nil, status.Errorf(http.StatusBadRequest, msg)
+	}
+	if s.vlidateDeviceRegistered(ipAddress) == false {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress}).Info("Device ip " + ipAddress + " is not registered")
+		return nil, status.Errorf(http.StatusBadRequest, "Device ip "+ipAddress+" is not registered")
+	}
+	userName := s.getUserByToken(ipAddress, token)
+	if errRet := s.validateDeviceAccountData(ipAddress, userName, ""); errRet != "" {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress,
+			"Username":        userName,
+		}).Info(errRet)
+		return nil, status.Errorf(http.StatusBadRequest, errRet)
+	}
+	usage, statusCode, err := s.getMemoryUsage(ipAddress, token)
+	if err != nil && statusCode != http.StatusOK {
+		errStatus, _ := status.FromError(err)
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress,
+			"Memory Usage":    usage,
+		}).Info(errStatus.Message())
+		return nil, status.Errorf(codes.Code(statusCode), errStatus.Message())
+	}
+	redfishInfoData := new(importer.RedfishInfo)
+	redfishInfoData.MemoryUsage = usage
+	return redfishInfoData, nil
+}
+
+func (s *Server) SetMemoryUsageForEvent(c context.Context, deviceMemoryUsage *importer.DeviceMemoryUsage) (*empty.Empty, error) {
+	var ipAddress, token string
+	var lowerThresholdNonCritical uint32
+	if deviceMemoryUsage == nil || len(deviceMemoryUsage.IpAddress) == 0 {
+		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, "input info error")
+	}
+	ipAddress = deviceMemoryUsage.IpAddress
+	token = deviceMemoryUsage.UserToken
+	lowerThresholdNonCritical = deviceMemoryUsage.LowerThresholdNonCritical
+	if msg, ok := s.validateIPAddress(ipAddress); !ok {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress}).Info(msg)
+		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, msg)
+	}
+	if s.vlidateDeviceRegistered(ipAddress) == false {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress}).Info("Device ip " + ipAddress + " is not registered")
+		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, "Device ip "+ipAddress+" is not registered")
+	}
+	userName := s.getUserByToken(ipAddress, token)
+	if errRet := s.validateDeviceAccountData(ipAddress, userName, ""); errRet != "" {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress,
+			"Username":        userName,
+		}).Info(errRet)
+		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, errRet)
+	}
+	statusCode, err := s.setMemoryUsageForEvent(ipAddress, token, lowerThresholdNonCritical)
+	if err != nil && statusCode != http.StatusOK {
+		errStatus, _ := status.FromError(err)
+		logrus.WithFields(logrus.Fields{
+			"IP address:port":           ipAddress,
+			"LowerThresholdNonCritical": lowerThresholdNonCritical,
+		}).Info(errStatus.Message())
+		return &empty.Empty{}, status.Errorf(codes.Code(statusCode), errStatus.Message())
+	}
+	return &empty.Empty{}, nil
+}
+
+func (s *Server) GetStorageUsage(c context.Context, redfishInfo *importer.RedfishInfo) (*importer.RedfishInfo, error) {
+	var token, ipAddress string
+	if redfishInfo == nil || len(redfishInfo.IpAddress) == 0 {
+		return nil, status.Errorf(http.StatusBadRequest, "input device data error")
+	}
+	ipAddress = redfishInfo.IpAddress
+	token = redfishInfo.UserToken
+	if msg, ok := s.validateIPAddress(ipAddress); !ok {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress}).Info(msg)
+		return nil, status.Errorf(http.StatusBadRequest, msg)
+	}
+	if s.vlidateDeviceRegistered(ipAddress) == false {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress}).Info("Device ip " + ipAddress + " is not registered")
+		return nil, status.Errorf(http.StatusBadRequest, "Device ip "+ipAddress+" is not registered")
+	}
+	userName := s.getUserByToken(ipAddress, token)
+	if errRet := s.validateDeviceAccountData(ipAddress, userName, ""); errRet != "" {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress,
+			"Username":        userName,
+		}).Info(errRet)
+		return nil, status.Errorf(http.StatusBadRequest, errRet)
+	}
+	usage, statusCode, err := s.getStorageUsage(ipAddress, token)
+	if err != nil && statusCode != http.StatusOK {
+		errStatus, _ := status.FromError(err)
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress,
+			"Storage Usage":   usage,
+		}).Info(errStatus.Message())
+		return nil, status.Errorf(codes.Code(statusCode), errStatus.Message())
+	}
+	redfishInfoData := new(importer.RedfishInfo)
+	redfishInfoData.StorageUsage = usage
+	return redfishInfoData, nil
+
+}
+
+func (s *Server) SetStorageUsageForEvent(c context.Context, deviceStorageUsage *importer.DeviceStorageUsage) (*empty.Empty, error) {
+	var ipAddress, token string
+	var upperThresholdNonCritical uint32
+	if deviceStorageUsage == nil || len(deviceStorageUsage.IpAddress) == 0 {
+		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, "input info error")
+	}
+	ipAddress = deviceStorageUsage.IpAddress
+	token = deviceStorageUsage.UserToken
+	upperThresholdNonCritical = deviceStorageUsage.UpperThresholdNonCritical
+	if msg, ok := s.validateIPAddress(ipAddress); !ok {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress}).Info(msg)
+		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, msg)
+	}
+	if s.vlidateDeviceRegistered(ipAddress) == false {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress}).Info("Device ip " + ipAddress + " is not registered")
+		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, "Device ip "+ipAddress+" is not registered")
+	}
+	userName := s.getUserByToken(ipAddress, token)
+	if errRet := s.validateDeviceAccountData(ipAddress, userName, ""); errRet != "" {
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress,
+			"Username":        userName,
+		}).Info(errRet)
+		return &empty.Empty{}, status.Errorf(http.StatusBadRequest, errRet)
+	}
+	statusCode, err := s.setStorageUsageForEvent(ipAddress, token, upperThresholdNonCritical)
+	if err != nil && statusCode != http.StatusOK {
+		errStatus, _ := status.FromError(err)
+		logrus.WithFields(logrus.Fields{
+			"IP address:port":           ipAddress,
+			"UpperThresholdNonCritical": upperThresholdNonCritical,
+		}).Info(errStatus.Message())
+		return &empty.Empty{}, status.Errorf(codes.Code(statusCode), errStatus.Message())
+	}
+	return &empty.Empty{}, nil
+}

@@ -19,33 +19,32 @@
 # under the License.
 
 SHELL = /bin/bash
+PWD=$(shell pwd)
 VERSION=$(shell cat ../../VERSION)
 DEMOTESTDIR = ..
 DEMOTESTLOG = demotest.log
 TESTSDIR := tests
 TESTTAG = tc
+DMTOOL = ${PWD}/dm
 MODEL = $(shell \
-if [ -f ./dm ]; \
+if [ -f "${DMTOOL}" ]; \
 then \
 pushd . > /dev/null; \
 cd ${DEMOTESTDIR}; \
 ./demotest > ${DEMOTESTLOG} 2>&1 & sleep 2; \
 popd>/dev/null; \
-./dm attach $1:$2:120 > /dev/null; \
-./dm setsessionservice $1:$2:"":true:300 > /dev/null; \
-token=`./dm logindevice $1:$2:$3:$4| cut -d' ' -f4`; \
-./dm getredfishmodel $1:$2:$$token; \
-./dm detach $1:$2:$$token > /dev/null; \
+${DMTOOL} attach $1:$2:120 > /dev/null; \
+${DMTOOL} setsessionservice $1:$2:"":true:300 > /dev/null; \
+token=`${DMTOOL} logindevice $1:$2:$3:$4| cut -d' ' -f4`; \
+${DMTOOL} getredfishmodel $1:$2:$$token; \
+${DMTOOL} detach $1:$2:$$token > /dev/null; \
 pidof demotest > /dev/null && pkill demotest; \
 fi \
 )
 FILTERTESTS := $(shell \
 $(eval MODEL1:=$(call MODEL,${IP1},${PORT1},${USER1},${PWD1})) \
 $(eval MODEL2:=$(call MODEL,${IP2},${PORT=2},${USER2},${PWD2})) \
-if [ "${MODEL1}" == "OpenBmc" ]; \
-then \
-echo "access_device\|account_service\|device_data\|device_operations"; \
-elif [ "${MODEL1}" == "external" ]; \
+if [ "${MODEL1}" == "external" ]; \
 then \
 echo "device_data\|device_operations\|log_service"; \
 else \

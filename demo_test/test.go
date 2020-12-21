@@ -988,7 +988,7 @@ func main() {
 			if err != nil {
 				errStatus, _ := status.FromError(err)
 				newmessage = errStatus.Message()
-				logrus.Errorf("get redfish model error - status code %v message %v", errStatus.Code(), errStatus.Message())
+				logrus.Errorf("get cpu status error - status code %v message %v", errStatus.Code(), errStatus.Message())
 			} else {
 				logrus.Info("getcpustatus ", ret_msg.CpuUsage[:])
 				newmessage = strings.Join(ret_msg.CpuUsage[:], " ")
@@ -1022,6 +1022,111 @@ func main() {
 				} else {
 					newmessage = newmessage + cmd + " configured"
 				}
+			}
+		case "getmemorystatus":
+			if len(s) != 2 {
+				newmessage = newmessage + "invalid command " + cmdstr
+				break
+			}
+			args := strings.Split(s[1], ":")
+			if len(args) < 3 {
+				newmessage = newmessage + "invalid command " + args[0]
+				break
+			}
+			redfishInfoData := new(importer.RedfishInfo)
+			redfishInfoData.IpAddress = args[0] + ":" + args[1]
+			redfishInfoData.UserToken = args[2]
+			ret_msg, err := cc.GetMemoryUsage(ctx, redfishInfoData)
+			if err != nil {
+				errStatus, _ := status.FromError(err)
+				newmessage = errStatus.Message()
+				logrus.Errorf("get memory status error - status code %v message %v", errStatus.Code(), errStatus.Message())
+			} else {
+				logrus.Info("getmemorystatus ", ret_msg.MemoryUsage[:])
+				newmessage = strings.Join(ret_msg.MemoryUsage[:], " ")
+			}
+		case "setmemorystatus":
+			if len(s) != 2 {
+				newmessage = newmessage + "invalid command " + cmdstr
+				break
+			}
+			args := strings.Split(s[1], ":")
+			if len(args) != 4 {
+				newmessage = newmessage + "invalid command " + s[1]
+				break
+			}
+			ip := args[0] + ":" + args[1]
+			token := args[2]
+			lowerThresholdNonCritical := args[3]
+			lower, err1 := strconv.ParseUint(lowerThresholdNonCritical, 10, 64)
+			if err1 != nil {
+				logrus.Error("ParseUint error!!")
+			} else {
+				redfishInfoData := new(importer.DeviceMemoryUsage)
+				redfishInfoData.IpAddress = ip
+				redfishInfoData.UserToken = token
+				redfishInfoData.LowerThresholdNonCritical = uint32(lower)
+				_, err := cc.SetMemoryUsageForEvent(ctx, redfishInfoData)
+				if err != nil {
+					errStatus, _ := status.FromError(err)
+					newmessage = newmessage + errStatus.Message()
+					logrus.Errorf("period error - status code %v message %v", errStatus.Code(), errStatus.Message())
+				} else {
+					newmessage = newmessage + cmd + " configured"
+				}
+			}
+		case "setstoragestatus":
+			if len(s) != 2 {
+				newmessage = newmessage + "invalid command " + cmdstr
+				break
+			}
+			args := strings.Split(s[1], ":")
+			if len(args) != 4 {
+				newmessage = newmessage + "invalid command " + s[1]
+				break
+			}
+			ip := args[0] + ":" + args[1]
+			token := args[2]
+			upperThresholdNonCritical := args[3]
+			upper, err1 := strconv.ParseUint(upperThresholdNonCritical, 10, 64)
+			if err1 != nil {
+				logrus.Error("ParseUint error!!")
+			} else {
+				redfishInfoData := new(importer.DeviceStorageUsage)
+				redfishInfoData.IpAddress = ip
+				redfishInfoData.UserToken = token
+				redfishInfoData.UpperThresholdNonCritical = uint32(upper)
+				_, err := cc.SetStorageUsageForEvent(ctx, redfishInfoData)
+				if err != nil {
+					errStatus, _ := status.FromError(err)
+					newmessage = newmessage + errStatus.Message()
+					logrus.Errorf("period error - status code %v message %v", errStatus.Code(), errStatus.Message())
+				} else {
+					newmessage = newmessage + cmd + " configured"
+				}
+			}
+
+		case "getstoragestatus":
+			if len(s) != 2 {
+				newmessage = newmessage + "invalid command " + cmdstr
+				break
+			}
+			args := strings.Split(s[1], ":")
+			if len(args) < 3 {
+				newmessage = newmessage + "invalid command " + args[0]
+				break
+			}
+			redfishInfoData := new(importer.RedfishInfo)
+			redfishInfoData.IpAddress = args[0] + ":" + args[1]
+			redfishInfoData.UserToken = args[2]
+			ret_msg, err := cc.GetStorageUsage(ctx, redfishInfoData)
+			if err != nil {
+				errStatus, _ := status.FromError(err)
+				newmessage = errStatus.Message()
+				logrus.Errorf("get storage status error - status code %v message %v", errStatus.Code(), errStatus.Message())
+			} else {
+				logrus.Info("getstoragestatus ", ret_msg.StorageUsage[:])
+				newmessage = strings.Join(ret_msg.StorageUsage[:], " ")
 			}
 		case "devicesoftwareupdate":
 			if len(s) < 2 {
@@ -1199,10 +1304,18 @@ getdevicetemperaturedata - get device tempertures infomation
 	Usage: ./dm getdevicetemperaturedata <ip address:port:token>
 setdevicetemperaturedata - configure the device event temperature
 	Usage: ./dm setdevicetemperaturedata <ip address:port:token:member id:upperThresholdNonCritical:lowerThresholdNonCritical>
+getredfishmodel - get redfish model
+	Usage: ./dm getredfishmodel <ip address:port:token>
 getcpustatus - get device CPU usage
 	Usage: ./dm getcpustatus <ip address:port:token>
 setcpustatus - configure the device event CPU usage
 	Usage: ./dm setcpustatus <ip address:port:token:upperThresholdNonCritical>
+getmemorystatus - get device memory usage
+	Usage: ./dm getmemorystatus <ip address:port:token>
+setmemorystatus - configure the device event memory usage
+	Usage: ./dm setmemorystatus <ip address:port:token:lowerThresholdNonCritical>
+setstoragestatus - configure the device event storage usage
+	Usage: ./dm setstoragestatus <ip address:port:token:upperThresholdNonCritical>
 devicesoftwareupdate - start to update device and send Multiple Updater (MU) download site
 	Usage: ./dm devicesoftwareupdate <ip address:port:token:MU:<http or https or tftp>:<server IP address:<port or "">:multiple updater download URI>
 devicesoftwareupdate - start to update device and send Network OS (NOS) download site

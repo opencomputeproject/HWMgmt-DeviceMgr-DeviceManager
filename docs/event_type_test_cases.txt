@@ -426,8 +426,7 @@ These format and messages content defined in DMTF schema "ResouceEvent.1.0.3".
   ]
 }
 
--- CPU/Main Board Thermal Sensor over/lower upper/lower warning (ThresholdNonCritical) temperature
-If thermal sensor 6  current "ReadingCelsius": 59  under "LowerThresholdNonCritical": 62
+-- Current temperature lower "LowerThresholdNonCritical"
 {
   "@odata.context": "/rest/v1/$metadata#EventService/Members/Events/1",
   "@odata.id": "/rest/v1/EventService/Events/1",
@@ -438,20 +437,80 @@ If thermal sensor 6  current "ReadingCelsius": 59  under "LowerThresholdNonCriti
   "Events": [
     {
       "EventType": "Alert",
-      "EventId": "cd49bdea-c915-11d3-ad49-4f060d6fb099",
-      "EventTimestamp": "2000-01-12T17:29:19+00:00",
+      "EventId": "d80e1036-3619-11eb-98e8-83d42a5a0c28",
+      "EventTimestamp": "2020-12-04T10:16:59+00:00",
       "Severity": "Warning",
-      "Message": "The resource property /redfish/v1/Chassis/1/Thermal/Temperatures/6 has exceeded its warning threshold of value 62.",
+      "Message": "The resource property /redfish/v1/Chassis/1/Thermal/Temperatures/1 has exceeded its warning threshold of value 45.",
       "MessageId": "ResourceEvent.1.0.3.ResourceWarningThresholdExceeded",
       "MessageArgs": [],
+      "OriginOfCondition": "/redfish/v1/Chassis/1/Thermal/Temperatures/1",
+      "Context": "Alert notification message",
+      "Oem": {
+        "CurrentValue": "43",
+        "State": "ExceededLowerThresholdNonCritical",
+        "ThresholdValue": "45"
+      }
+    }
+  ]
+}
+
+-- Current temperature over "UpperThresholdNonCritical"
+{
+  "@odata.context": "/rest/v1/$metadata#EventService/Members/Events/1",
+  "@odata.id": "/rest/v1/EventService/Events/1",
+  "@odata.type": "#EventService.1.0.0.Event",
+  "Id": "1",
+  "Name": "Event Array",
+  "Description": "Events",
+  "Events": [
+    {
+      "EventType": "Alert",
+      "EventId": "a3a62d8a-3617-11eb-b1a0-4b0ec2dd0252",
+      "EventTimestamp": "2020-12-04T10:01:12+00:00",
+      "Severity": "Warning",
+      "Message": "The resource property /redfish/v1/Chassis/1/Thermal/Temperatures/9 has exceeded its warning threshold of value 50.",
+      "MessageId": "ResourceEvent.1.0.3.ResourceWarningThresholdExceeded",
+      "MessageArgs": [],
+      "OriginOfCondition": "/redfish/v1/Chassis/1/Thermal/Temperatures/9",
+      "Context": "Alert notification message",
+      "Oem": {
+        "CurrentValue": "50",
+        "State": "ExceededUpperThresholdNonCritical",
+        "ThresholdValue": "50"
+      }
+    }
+  ]
+}
+
+-- Current temperature over "UpperThresholdCritical"
+{
+  "@odata.context": "/rest/v1/$metadata#EventService/Members/Events/1",
+  "@odata.id": "/rest/v1/EventService/Events/1",
+  "@odata.type": "#EventService.1.0.0.Event",
+  "Id": "1",
+  "Name": "Event Array",
+  "Description": "Events",
+  "Events": [
+    {
+      "EventType": "Alert",
+      "EventId": "c81311c4-3617-11eb-8484-3f526f9d06b8",
+      "EventTimestamp": "2020-12-04T10:02:13+00:00",
+      "Severity": "Warning",
+      "Message": "The resource property /redfish/v1/Chassis/1/Thermal/Temperatures/6 has exceeded its error threshold of value 55.",
+      "MessageId": "ResourceEvent.1.0.3.ResourceErrorThresholdExceeded",
+      "MessageArgs": [],
       "OriginOfCondition": "/redfish/v1/Chassis/1/Thermal/Temperatures/6",
-      "Context": "Alert notification message"
+      "Context": "Alert notification message",
+      "Oem": {
+        "CurrentValue": "55",
+        "State": "ExceededUpperThresholdCritical",
+        "ThresholdValue": "55"
+      }
     }
   ]
 }
 
--- CPU/Main Board Thermal Sensor over critical temperature (UpperThresholdCritical)
-If thermal sensor 2 "ReadingCelsius": 59  over "UpperThresholdCritical": 55
+-- Current temperature over "UpperThresholdFatal"
 {
   "@odata.context": "/rest/v1/$metadata#EventService/Members/Events/1",
   "@odata.id": "/rest/v1/EventService/Events/1",
@@ -462,37 +521,19 @@ If thermal sensor 2 "ReadingCelsius": 59  over "UpperThresholdCritical": 55
   "Events": [
     {
       "EventType": "Alert",
-      "EventId": "3c9e0dc6-c92b-11d3-8a4a-77b52541dbc9",
-      "EventTimestamp": "2000-01-12T20:02:46+00:00",
+      "EventId": "af652474-361b-11eb-b3a8-1b9509fe1a45",
+      "EventTimestamp": "2020-12-04T10:30:09+00:00",
       "Severity": "Warning",
-      "Message": "The resource property /redfish/v1/Chassis/1/Thermal/Temperatures/2 has exceeded its error threshold of value 55.",
+      "Message": "The resource property /redfish/v1/Chassis/1/Thermal/Temperatures/6 has exceeded its error threshold of value 60.",
       "MessageId": "ResourceEvent.1.0.3.ResourceErrorThresholdExceeded",
       "MessageArgs": [],
-      "OriginOfCondition": "/redfish/v1/Chassis/1/Thermal/Temperatures/2",
-      "Context": "Alert notification message"
-    }
-  ]
-}
-
-- If thermal sensor 2 "ReadingCelsius": 61", but it is over the "UpperThresholdFatal":60
-{
-  "@odata.context": "/rest/v1/$metadata#EventService/Members/Events/1",
-  "@odata.id": "/rest/v1/EventService/Events/1",
-  "@odata.type": "#EventService.1.0.0.Event",
-  "Id": "1",
-  "Name": "Event Array",
-  "Description": "Events",
-  "Events": [
-    {
-      "EventType": "Alert",
-      "EventId": "3c9e0dc6-c92b-11d3-8a4a-77b52541dbc9",
-      "EventTimestamp": "2000-01-12T20:02:46+00:00",
-      "Severity": "Warning",
-      "Message": "The resource property /redfish/v1/Chassis/1/Thermal/Temperatures/2 has exceeded its error threshold of value 60.",
-      "MessageId": "ResourceEvent.1.0.3.ResourceErrorThresholdExceeded",
-      "MessageArgs": [],
-      "OriginOfCondition": "/redfish/v1/Chassis/1/Thermal/Temperatures/2",
-      "Context": "Alert notification message"
+      "OriginOfCondition": "/redfish/v1/Chassis/1/Thermal/Temperatures/6",
+      "Context": "Alert notification message",
+      "Oem": {
+        "CurrentValue": "60",
+        "State": "ExceededUpperThresholdFatal",
+        "ThresholdValue": "60"
+      }
     }
   ]
 }

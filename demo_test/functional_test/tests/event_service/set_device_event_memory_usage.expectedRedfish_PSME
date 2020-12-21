@@ -19,10 +19,10 @@
 // under the License.
 ip1:port1 attached
 ip1:port1 set ok!
-{"LoadingPercentage":loading1,"UpperThresholdNonCritical":upper1}
-setcpustatus configured
-The upperThresholdNonCritical could only configure 1~99
-{"LoadingPercentage":loading2,"UpperThresholdNonCritical":upper2}
-The upperThresholdNonCritical could only configure 1~99
-{"LoadingPercentage":loading3,"UpperThresholdNonCritical":upper3}
+{"FreeMemoryPercentage":status1,"LowerThresholdNonCritical":lower1}
+setmemorystatus configured
+The lowerThresholdNonCritical could only configure 1~99
+{"FreeMemoryPercentage":status2,"LowerThresholdNonCritical":lower2}
+The lowerThresholdNonCritical could only configure 1~99
+{"FreeMemoryPercentage":status3,"LowerThresholdNonCritical":lower3}
 ip1:port1 detached
