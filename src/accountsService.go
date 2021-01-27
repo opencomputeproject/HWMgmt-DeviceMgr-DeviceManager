@@ -48,20 +48,11 @@ const RfSessionTimeOut = 300
 //UserPrivileges :
 var UserPrivileges = []string{"Administrator", "Operator", "ReadOnlyUser"}
 
-//OpenBmcUserPrivileges:
-var OpenBmcUserPrivileges = []string{"Administrator", "Operator", "User", "Callback"}
-
 //UserNameMaxLength :
 const UserNameMaxLength = 256
 
 //PasswordMaxLength :
 const PasswordMaxLength = 256
-
-//RedfishPSMEModel
-const RedfishPSMEModel = "Redfish PSME"
-
-//OpenBmcModel
-const OpenBmcModel = "OpenBmc"
 
 func (s *Server) getTokenByUser(deviceIPAddress string, userName string) string {
 	if len(s.devicemap) != 0 {
@@ -97,17 +88,6 @@ func (s *Server) getUserStatus(deviceIPAddress string, token string, targetUser 
 		}
 	}
 	return found
-}
-
-func (s *Server) getDefineUserPrivilege(deviceIPAddress string) []string {
-	switch s.devicemap[deviceIPAddress].Model {
-	case RedfishPSMEModel:
-		return UserPrivileges
-	case OpenBmcModel:
-		return OpenBmcUserPrivileges
-	default:
-		return UserPrivileges
-	}
 }
 
 func (s *Server) getUserPrivilege(deviceIPAddress string, token string, targetUser string) string {
@@ -165,14 +145,12 @@ func (s *Server) createDeviceAccount(deviceIPAddress string, token string, newUs
 		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this device")
 	}
 	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != s.getDefineUserPrivilege(deviceIPAddress)[0] {
+	if userPrivilege != UserPrivileges[0] {
 		logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
 		return http.StatusBadRequest, errors.New("The user " + userName + " privilege is not administrator")
 	}
 	userInfo := map[string]interface{}{}
-	if s.devicemap[deviceIPAddress].Model == RedfishPSMEModel {
-		userInfo["Name"] = "Account Service"
-	}
+	userInfo["Name"] = "Account Service"
 	if newUserName != "" {
 		userInfo["UserName"] = newUserName
 	} else {
@@ -184,7 +162,7 @@ func (s *Server) createDeviceAccount(deviceIPAddress string, token string, newUs
 		return http.StatusBadRequest, errors.New("The user password is invalid")
 	}
 	found := false
-	for _, userPrivilege := range s.getDefineUserPrivilege(deviceIPAddress) {
+	for _, userPrivilege := range UserPrivileges {
 		if role == userPrivilege {
 			userInfo["RoleId"] = role
 			found = true
@@ -194,9 +172,7 @@ func (s *Server) createDeviceAccount(deviceIPAddress string, token string, newUs
 		return http.StatusBadRequest, errors.New("The user " + newUserName + " privilege is invalid")
 	}
 	userInfo["Enabled"] = true
-	if s.devicemap[deviceIPAddress].Model == RedfishPSMEModel {
-		userInfo["Locked"] = false
-	}
+	userInfo["Locked"] = false
 	_, _, _, statusCode = postHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts, token, userInfo)
 	if statusCode != http.StatusCreated {
 		logrus.Errorf("Failed to create device account %s, status code %d", newUserName, statusCode)
@@ -217,7 +193,7 @@ func (s *Server) removeDeviceAccount(deviceIPAddress string, token string, remov
 		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this device")
 	}
 	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != s.getDefineUserPrivilege(deviceIPAddress)[0] {
+	if userPrivilege != UserPrivileges[0] {
 		logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
 		return http.StatusBadRequest, errors.New("The user " + userName + " privilege is not administrator")
 	} else {
@@ -267,7 +243,7 @@ func (s *Server) setSessionService(deviceIPAddress string, token string, status 
 			return http.StatusBadRequest, errors.New("The user account " + userName + " is not available in device")
 		}
 		userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-		if userPrivilege != s.getDefineUserPrivilege(deviceIPAddress)[0] {
+		if userPrivilege != UserPrivileges[0] {
 			logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
 			return http.StatusBadRequest, errors.New("The user " + userName + " privilege is not administrator")
 		}
@@ -292,7 +268,6 @@ func (s *Server) setSessionService(deviceIPAddress string, token string, status 
 				". The Status Code is " + strconv.Itoa(statusCode))
 		}
 	}
-
 	return statusCode, nil
 }
 
@@ -322,11 +297,6 @@ func (s *Server) loginDevice(deviceIPAddress string, token string, loginUserName
 		RetToken = strings.Join(response.Header["X-Auth-Token"], " ")
 		if len(RetToken) != 0 {
 			s.devicemap[deviceIPAddress].UserLoginInfo[loginUserName] = RetToken
-			model := s.getManagerModel(deviceIPAddress, RetToken)
-			if model == "unknown model" {
-				return "", http.StatusNoContent, errors.New("The Redfish model (Managers/1) does not support")
-			}
-			s.devicemap[deviceIPAddress].Model = model
 			s.updateDataFile(deviceIPAddress)
 		}
 	}
@@ -354,10 +324,9 @@ func (s *Server) logoutDevice(deviceIPAddress string, token string, logoutUserNa
 	}
 	logoutUserPrivilege := s.getUserPrivilege(deviceIPAddress, token, logoutUserName)
 	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	privilege := s.getDefineUserPrivilege(deviceIPAddress)
-	if userPrivilege != privilege[0] {
-		if (userPrivilege == privilege[1] && logoutUserPrivilege == privilege[0]) ||
-			(userPrivilege == privilege[2] && logoutUserPrivilege != privilege[2]) {
+	if userPrivilege != UserPrivileges[0] {
+		if (userPrivilege == UserPrivileges[1] && logoutUserPrivilege == UserPrivileges[0]) ||
+			(userPrivilege == UserPrivileges[2] && logoutUserPrivilege != UserPrivileges[2]) {
 			logrus.Errorf("The user %s privilege could not logout the other higher user from this device %s", userName, deviceIPAddress)
 			return http.StatusBadRequest, errors.New("The user " + userName + " privilege could not logout the other higher user")
 		}
@@ -400,7 +369,7 @@ func (s *Server) changeDeviceUserPassword(deviceIPAddress string, token string, 
 		return http.StatusBadRequest, errors.New("The user account " + userName + " is not available in device")
 	}
 	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != s.getDefineUserPrivilege(deviceIPAddress)[0] {
+	if userPrivilege != UserPrivileges[0] {
 		logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
 		return http.StatusBadRequest, errors.New("The user " + userName + " privilege is not administrator")
 	}
@@ -424,7 +393,7 @@ func (s *Server) listDeviceAccount(deviceIPAddress string, token string) (device
 		return nil, http.StatusNotFound, errors.New("The user account " + userName + " is not available in device")
 	}
 	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != s.getDefineUserPrivilege(deviceIPAddress)[0] {
+	if userPrivilege != UserPrivileges[0] {
 		logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
 		return nil, http.StatusBadRequest, errors.New("The user " + userName + " privilege is not administrator")
 	}
@@ -436,19 +405,4 @@ func (s *Server) listDeviceAccount(deviceIPAddress string, token string) (device
 		deviceAccounts[user] = token
 	}
 	return deviceAccounts, http.StatusOK, nil
-}
-
-func (s *Server) getRedfishAPI(deviceIPAddress string, deviceRedfish []string) (redfishAPI string, id int) {
-	switch s.devicemap[deviceIPAddress].Model {
-	case RedfishPSMEModel:
-		id = 0
-		redfishAPI = deviceRedfish[0]
-	case OpenBmcModel:
-		id = 1
-		redfishAPI = deviceRedfish[1]
-	default:
-		id = 255
-		redfishAPI = deviceRedfish[0]
-	}
-	return redfishAPI, id
 }

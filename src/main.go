@@ -44,8 +44,6 @@ import (
 )
 
 const PsmeDefaultPortNumber = "8888"
-const SonicPsmeDefaultPortNumber = "8889"
-const BmcRedfishDefaultPortNumber = "443"
 
 var lock sync.Mutex
 var (
@@ -158,9 +156,9 @@ func (s *Server) validateIPAddress(ipAddress string) (msg string, ok bool) {
 		msg = "Port number " + port + " needs to be an integer"
 		return
 	}
-	if port != PsmeDefaultPortNumber && port != SonicPsmeDefaultPortNumber && port != BmcRedfishDefaultPortNumber {
-		logrus.Errorf("Port number is %s, it should be %d/%d/%d", port, PsmeDefaultPortNumber, SonicPsmeDefaultPortNumber, BmcRedfishDefaultPortNumber)
-		msg = "Port number " + port + " should be " + PsmeDefaultPortNumber + "/" + SonicPsmeDefaultPortNumber + "/" + BmcRedfishDefaultPortNumber
+	if port != PsmeDefaultPortNumber {
+		logrus.Errorf("Port number is %s, it should be %d/%d/%d", port, PsmeDefaultPortNumber)
+		msg = "Port number " + port + " should be " + PsmeDefaultPortNumber
 		return
 	}
 	ok = true

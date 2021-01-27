@@ -17,12 +17,11 @@
 // KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations
 // under the License.
-Device ip ip1:port1 is not registered
-ip1:port1 attached
-
-The subscription does not support (ResourceAdded)
-
-The subscription does not support (ResourceAdded)
-The subscription does not support (abc)
-The current subscription is empty
+ip1:port1 ip2:port2 attached
+ip1:port1 set ok!
+ip2:port2 set ok!
+Device ip ip1:port1 already registered
+Port number 88 should be 8888
+Port number  needs to be an integer
 ip1:port1 detached
+ip2:port2 detached

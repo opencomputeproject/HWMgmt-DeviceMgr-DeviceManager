@@ -21,12 +21,10 @@
 # under the License.
 
 ./dm attach $1:$2:120
-model=`./dm getredfishmodel $1:$2:""|sed 's/ /_/'`
-[ "$model" == "Redfish_PSME" ] && ./dm setsessionservice $1:$2:"":true:300
+./dm setsessionservice $1:$2:"":true:300
 admin_token=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
-model=`./dm getredfishmodel $1:$2:$admin_token|sed 's/ /_/'`
-./dm createaccount $1:$2:$admin_token:admin_1:0penBmc:Administrator
-admin_1_token=`./dm logindevice $1:$2:admin_1:0penBmc| cut -d' ' -f4`
+./dm createaccount $1:$2:$admin_token:admin_1:admin_1:Administrator
+admin_1_token=`./dm logindevice $1:$2:admin_1:admin_1| cut -d' ' -f4`
 ./dm logoutdevice $1:$2:$admin_1_token:$5
 ret=`./dm deviceaccess $1:$2:$admin_1_token:GET:/redfish/v1/SessionService/Sessions:""`
 userid1=`echo $ret|awk -F[/}] '{print $14}'|awk -F"\"" '{print $1}'`
@@ -42,4 +40,4 @@ admin_token=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
 ./dm deleteaccount $1:$2:$admin_token:admin_1
 ./dm detach $1:$2:$admin_token
 
-sed -e '/^\/\//d' -e 's/ip1/'${1}'/g; s/port1/'${2}'/g; s/ip2/'${3}'/g; s/port2/'${4}'/g; s/token/'${token}'/g; s/USERID1/'${userid1}'/g; s/USERID2/'${userid2}'/g; s/USERiD1/'${userId1}'/g; s/USERiD2/'${userId2}'/g' "$9".expected${model} > "$9".e
+sed -e '/^\/\//d' -e 's/ip1/'${1}'/g; s/port1/'${2}'/g; s/ip2/'${3}'/g; s/port2/'${4}'/g; s/token/'${token}'/g; s/USERID1/'${userid1}'/g; s/USERID2/'${userid2}'/g; s/USERiD1/'${userId1}'/g; s/USERiD2/'${userId2}'/g' "$9".expected > "$9".e

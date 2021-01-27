@@ -21,20 +21,14 @@
 # under the License.
 
 ./dm attach $1:$2:120
-model=`./dm getredfishmodel $1:$2:""|sed 's/ /_/'`
-[ "$model" == "Redfish_PSME" ] && ./dm setsessionservice $1:$2:"":true:300
+./dm setsessionservice $1:$2:"":true:300
 admin_token=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
-model=`./dm getredfishmodel $1:$2:$admin_token|sed 's/ /_/'`
-./dm createaccount $1:$2:$admin_token:admin_1:0penBmc:Administrator
-./dm createaccount $1:$2:$admin_token:operator:0penBmc:Operator
-if [ "$model" == "Redfish_PSME" ]; then
-./dm createaccount $1:$2:$admin_token:readonly:0penBmc:ReadOnlyUser
-elif [ "$model" == "OpenBmc" ]; then
-./dm createaccount $1:$2:$admin_token:readonly:0penBmc:User
-fi
-admin_1_token=`./dm logindevice $1:$2:admin_1:0penBmc| cut -d' ' -f4`
-operator_token=`./dm logindevice $1:$2:operator:0penBmc| cut -d' ' -f4`
-readonly_token=`./dm logindevice $1:$2:readonly:0penBmc| cut -d' ' -f4`
+./dm createaccount $1:$2:$admin_token:admin_1:admin_1:Administrator
+./dm createaccount $1:$2:$admin_token:operator:operator:Operator
+./dm createaccount $1:$2:$admin_token:readonly:readonly:ReadOnlyUser
+admin_1_token=`./dm logindevice $1:$2:admin_1:admin_1| cut -d' ' -f4`
+operator_token=`./dm logindevice $1:$2:operator:operator| cut -d' ' -f4`
+readonly_token=`./dm logindevice $1:$2:readonly:readonly| cut -d' ' -f4`
 ./dm logoutdevice $1:$2:$operator_token:admin_1
 ./dm logoutdevice $1:$2:$readonly_token:admin_1
 ./dm logoutdevice $1:$2:$readonly_token:operator
@@ -48,4 +42,4 @@ readonly_token=`./dm logindevice $1:$2:readonly:0penBmc| cut -d' ' -f4`
 ./dm deleteaccount $1:$2:$admin_token:readonly
 ./dm detach $1:$2:$admin_token
 
-sed -e '/^\/\//d' -e 's/ip1/'${1}'/g; s/port1/'${2}'/g; s/ip2/'${3}'/g; s/port2/'${4}'/g; s/token/'${token}'/g' "$9".expected${model} > "$9".e
+sed -e '/^\/\//d' -e 's/ip1/'${1}'/g; s/port1/'${2}'/g; s/ip2/'${3}'/g; s/port2/'${4}'/g; s/token/'${token}'/g' "$9".expected > "$9".e

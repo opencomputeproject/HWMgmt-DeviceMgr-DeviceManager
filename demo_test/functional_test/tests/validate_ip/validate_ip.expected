@@ -18,14 +18,8 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
-accounts list : account:{key:"root" value:"admin_token"}
-admin_1 created
-operator created
-readonly created
-accounts list : account:{key:"admin_1" value:"admin_1_token"} account:{key:"operator" value:"operator_token"} account:{key:"readonly" value:"readonly_token"} account:{key:"root" value:"admin_token"}
-The user operator privilege is not administrator
-The user readonly privilege is not administrator
-admin_1 deleted
-operator deleted
-readonly deleted
+ip1:port1 set ok!
+Port number  needs to be an integer
+Invalid IP address 192.168.4
+Port number 8a needs to be an integer
 ip1:port1 detached

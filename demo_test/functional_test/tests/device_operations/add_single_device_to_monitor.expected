@@ -17,13 +17,8 @@
 // KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations
 // under the License.
-Device ip ip1:port1 is not registered
 ip1:port1 attached
 ip1:port1 set ok!
-
-sub successful
-ResourceAdded
-The subscription has registered (ResourceAdded)
-The subscription does not support (abc)
-ip1:port1 events cleared
+Port number 88 should be 8888
+invalid command ip1:88
 ip1:port1 detached

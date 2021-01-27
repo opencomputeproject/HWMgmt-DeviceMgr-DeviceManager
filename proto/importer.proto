@@ -46,18 +46,6 @@ message DeviceInfo {
 	uint32 frequency = 2;
 }
 
-message GivenEventList {
-	string event_ip_address = 1;
-	string userToken = 2;
-	repeated string events = 3;
-	string eventServerAddr = 4;
-	string eventServerPort = 5;
-}
-
-message EventList {
-	repeated string events = 1;
-}
-
 message FreqInfo {
 	string IpAddress = 1;
 	string userToken = 2;
@@ -81,7 +69,6 @@ message HttpInfo {
 	HttpPostData httpPostData = 2;
 	string httpDeleteData = 3;
 	HttpPatchData httpPatchData = 4;
-	bool accessFromFile = 5;
 }
 
 message LogService {
@@ -89,15 +76,6 @@ message LogService {
 	string userToken = 2;
 	bool logServiceEnabled = 3;
 	repeated string logData = 4;
-	uint64 begin = 5;
-	uint64 end =6;
-}
-
-message SoftwareUpdate {
-	string IpAddress = 1;
-	string userToken = 2;
-	string softwareDownloadType = 3;
-	string softwareDownloadURI = 4;
 }
 
 message RfAPIList {
@@ -122,20 +100,6 @@ message DeviceData {
 	repeated string deviceData = 1;
 }
 
-message GrubBootData {
-	repeated string bootData = 1;
-	string defaultBoot = 2;
-}
-
-message SystemBoot {
-	string IpAddress = 1;
-	string userToken = 2;
-	string defaultBoot = 3;
-	string resetType = 4;
-	string bootSourceOverrideEnabled = 5;
-	string bootSourceOverrideTarget = 6;
-}
-
 message DeviceTemperatureList {
 	map<string, string> temperatures = 1;
 }
@@ -143,37 +107,12 @@ message DeviceTemperatureList {
 message DeviceTemperature {
 	string IpAddress = 1;
 	string userToken = 2;
-	string memberId = 3;
-	uint32 upperThresholdNonCritical = 4;
-	uint32 lowerThresholdNonCritical = 5;
-	repeated string tempData = 6;
-}
-
-message DeviceCpuUsage {
-	string IpAddress = 1;
-	string userToken = 2;
-	uint32 upperThresholdNonCritical = 3;
-}
-
-message DeviceMemoryUsage {
-	string IpAddress = 1;
-	string userToken = 2;
-	uint32 lowerThresholdNonCritical = 3;
-}
-
-message DeviceStorageUsage {
-	string IpAddress = 1;
-	string userToken = 2;
-	uint32 upperThresholdNonCritical = 3;
+	repeated string tempData = 3;
 }
 
 message RedfishInfo {
 	string IpAddress = 1;
 	string userToken = 2;
-	string redfishModel = 3;
-	repeated string cpuUsage = 4;
-	repeated string memoryUsage = 5;
-	repeated string storageUsage = 6;
 }
 
 message Empty {}
@@ -190,11 +129,6 @@ service device_management {
 	rpc SendDeviceList(DeviceList) returns (google.protobuf.Empty) {}
 	rpc DeleteDeviceList(Device) returns (google.protobuf.Empty) {}
 	rpc SetFrequency(FreqInfo) returns (google.protobuf.Empty) {}
-	rpc GetEventList(Device) returns (EventList) {}
-	rpc SubscribeGivenEvents(GivenEventList)  returns (google.protobuf.Empty) {}
-	rpc UnsubscribeGivenEvents(GivenEventList) returns (google.protobuf.Empty) {}
-	rpc GetCurrentEventList(Device) returns (EventList) {}
-	rpc ClearCurrentEventList(Device) returns (google.protobuf.Empty) {}
 	rpc GetCurrentDevices(Empty) returns (DeviceListByIp) {}
 	rpc CreateDeviceAccount(DeviceAccount) returns (google.protobuf.Empty) {}
 	rpc RemoveDeviceAccount(DeviceAccount) returns (google.protobuf.Empty) {}
@@ -208,24 +142,10 @@ service device_management {
 	rpc EnableLogServiceState(LogService) returns (google.protobuf.Empty) {}
 	rpc ResetDeviceLogData(LogService) returns (google.protobuf.Empty) {}
 	rpc GetDeviceLogData(LogService) returns (LogService) {}
-	rpc SendDeviceSoftwareDownloadURI(SoftwareUpdate) returns (google.protobuf.Empty) {}
 	rpc GetDeviceData(Device) returns (DeviceData) {}
 	rpc GenericDeviceAccess(Device) returns (HttpData) {}
 	rpc AddPollingRfAPI(PollingRfAPI) returns (google.protobuf.Empty) {}
 	rpc RemovePollingRfAPI(PollingRfAPI) returns (google.protobuf.Empty) {}
 	rpc GetRfAPIList(PollingRfAPI) returns (RfAPIList) {}
-	rpc GetDeviceBootData(SystemBoot) returns (GrubBootData) {}
-	rpc GetDeviceDefaultBoot(SystemBoot) returns (GrubBootData) {}
-	rpc SetDeviceDefaultBoot(SystemBoot) returns (google.protobuf.Empty) {}
-	rpc ResetDeviceSystem(SystemBoot) returns (google.protobuf.Empty) {}
-	rpc ConfigureBootSource(SystemBoot) returns (google.protobuf.Empty) {}
 	rpc GetDeviceTemperatures(DeviceTemperature) returns (DeviceTemperature) {}
-	rpc SetDeviceTemperatureForEvent(DeviceTemperature) returns (google.protobuf.Empty) {}
-	rpc GetRedfishModel(RedfishInfo) returns (RedfishInfo) {}
-	rpc GetCpuUsage(RedfishInfo) returns (RedfishInfo) {}
-	rpc SetCpuUsageForEvent(DeviceCpuUsage) returns (google.protobuf.Empty) {}
-	rpc GetMemoryUsage(RedfishInfo) returns (RedfishInfo) {}
-	rpc SetMemoryUsageForEvent(DeviceMemoryUsage) returns (google.protobuf.Empty) {}
-	rpc GetStorageUsage(RedfishInfo) returns (RedfishInfo) {}
-	rpc SetStorageUsageForEvent(DeviceStorageUsage) returns (google.protobuf.Empty) {}
 }

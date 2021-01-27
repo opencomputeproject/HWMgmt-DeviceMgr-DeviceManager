@@ -26,7 +26,7 @@ DEMOTESTLOG = demotest.log
 TESTSDIR := tests
 TESTTAG = tc
 DMTOOL = ${PWD}/dm
-MODEL = $(shell \
+DETECT = $(shell \
 if [ -f "${DMTOOL}" ]; \
 then \
 pushd . > /dev/null; \
@@ -36,29 +36,18 @@ popd>/dev/null; \
 ${DMTOOL} attach $1:$2:120 > /dev/null; \
 ${DMTOOL} setsessionservice $1:$2:"":true:300 > /dev/null; \
 token=`${DMTOOL} logindevice $1:$2:$3:$4| cut -d' ' -f4`; \
-${DMTOOL} getredfishmodel $1:$2:$$token; \
 ${DMTOOL} detach $1:$2:$$token > /dev/null; \
 pidof demotest > /dev/null && pkill demotest; \
 fi \
 )
-FILTERTESTS := $(shell \
-$(eval MODEL1:=$(call MODEL,${IP1},${PORT1},${USER1},${PWD1})) \
-$(eval MODEL2:=$(call MODEL,${IP2},${PORT=2},${USER2},${PWD2})) \
-if [ "${MODEL1}" == "external" ]; \
-then \
-echo "device_data\|device_operations\|log_service"; \
-else \
-echo ""; \
-fi \
-)
-TESTS = $(shell find ${TESTSDIR} -name "*.${TESTTAG}" | grep "${FILTERTESTS}")
+TESTS = $(shell find ${TESTSDIR} -name "*.${TESTTAG}")
 DIRPATH = $(firstword $(subst ., ,$1))
 RESULTSDIR = results
 RED = \033[0;31m
 GREEN = \033[0;32m
 NC = \033[0m # No Color
 
-.PHONY : check-arg test clean demotest $(TESTS) results
+.PHONY : check-arg detect test clean demotest $(TESTS) results
 
 .DEFAULT_GOAL := dm
 
@@ -78,7 +67,11 @@ demotest:
 dm: test_cli.go
 	go build -i -v -o $@
 
-test: check-arg dm clean demotest $(TESTS) results
+detect:
+	@$(eval $(call DETECT,${IP1},${PORT1},${USER1},${PWD1}))
+	@$(eval $(call DETECT,${IP2},${PORT2},${USER2},${PWD2}))
+
+test: check-arg dm detect clean demotest $(TESTS) results
 	@make -C . clean
 	@echo "Device-Manager Automation Test Finished!"
 

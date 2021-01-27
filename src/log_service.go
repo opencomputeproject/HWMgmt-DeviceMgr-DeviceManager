@@ -57,8 +57,7 @@ func (s *Server) changeDeviceLogService(deviceIPAddress string, token string, st
 		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this deivce")
 	}
 	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	privilege := s.getDefineUserPrivilege(deviceIPAddress)
-	if userPrivilege != privilege[0] && userPrivilege != privilege[1] {
+	if userPrivilege != UserPrivileges[0] && userPrivilege != UserPrivileges[1] {
 		logrus.Errorf("The user %s privilege could not change Log sevice state from this device %s", userName, deviceIPAddress)
 		return http.StatusBadRequest, errors.New("The user privilege could not change state from  this device")
 	}
@@ -87,8 +86,7 @@ func (s *Server) resetDeviceLogData(deviceIPAddress string, token string) (statu
 		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this deivce")
 	}
 	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	privilege := s.getDefineUserPrivilege(deviceIPAddress)
-	if userPrivilege != privilege[0] && userPrivilege != privilege[1] {
+	if userPrivilege != UserPrivileges[0] && userPrivilege != UserPrivileges[1] {
 		logrus.Errorf("The user %s privilege could not change Log sevice state from this device %s", deviceIPAddress)
 		return http.StatusBadRequest, errors.New("The user privilege could not change state from  this device")
 	}

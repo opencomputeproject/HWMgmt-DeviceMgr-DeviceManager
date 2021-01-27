@@ -31,9 +31,6 @@ It runs on top of the device-management container and 'demotest' requiring the a
       At command line, type
 	make test IP1=<ip of 1st device> PORT1=<RF port # of 1st device> IP2=<ip of 2nd device> PORT2=<RF port # of 2nd device> USER1=<user of 1st device> PWD1=<password of 1st device> USER2=<user of 2nd device> PWD2=<password of 2nd device>
 
-     Optionally, The "EXTERNAL=y" parameter is testing the stanadard OCP functionality. It needs to install standard PSME software to device.
-	make test IP1=<ip of 1st device> PORT1=<RF port # of 1st device> IP2=<ip of 2nd device> PORT2=<RF port # of 2nd device> USER1=<user of 1st device> PWD1=<password of 1st device> USER2=<user of 2nd device> PWD2=<password of 2nd device> EXTERNAL=y
-
 2. Manual testing at command line
    To build 'dm', at command line, type
 	make
@@ -59,66 +56,8 @@ Get Current List of Devices monitored
 ./dm showdevices
 Sample output: 192.168.4.26:8888 192.168.4.27:8888
 
--------------------------------------------------------------------------------
-UnSubscribe all events(ResourceAdded/ResourceRemoved/Alert)
-./dm cleardeviceeventlist 192.168.4.27:8888
-
--------------------------------------------------------------------------------
-Subscribe all events(ResourceAdded/ResourceRemoved/Alert)
-./dm sub 192.168.4.27:8888:add:rm:alert
-
--------------------------------------------------------------------------------
-Subscribe and unsubscribe an event
-Example:
-Subscribe ResourceAdded event
-./dm sub 192.168.4.27:8888:add
-Subscribe ResourceRemoved event
-./dm sub 192.168.4.27:8888:rm
-Subscribe Alert event
-./dm sub 192.168.4.27:8888:alert
-Unsubscribe ResourceAdded event
-./dm unsub 192.168.4.27:8888:add
-Unsubscribe ResourceRemoved event
-./dm unsub 192.168.4.27:8888:rm
-Unsubscribe Alert event
-./dm unsub 192.168.4.27:8888:alert
-
--------------------------------------------------------------------------------
-Subscribe an unsupported event
-./dm sub 192.168.4.27:8888:update
-
--------------------------------------------------------------------------------
-Subscribe to an already subscribed event
-Example:
-./dm sub 192.168.4.27:8888:add
-./dm sub 192.168.4.27:8888:add
-
--------------------------------------------------------------------------------
-Unsubscribe an unsupported event
-./dm unsub 192.168.4.27:8888:update
-
--------------------------------------------------------------------------------
-Unsubscribe a supported but not-subscribed event
-Example:
-./dm unsub 192.168.4.27:8888:add:rm:alert
-./dm unsub 192.168.4.27:8888:add
-./dm unsub 192.168.4.27:8888:rm
-./dm unsub 192.168.4.27:8888:alert
-
--------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 Change polling interval
 Example:
 Set frequecny to 30 seconds
 ./dm period 192.168.4.27:8888:30
-
--------------------------------------------------------------------------------
-Show list of supported event
-./dm showeventlist 192.168.4.27:8888
-
--------------------------------------------------------------------------------
-Show current events subscribed by device
-showdeviceeventlist 192.168.4.27:8888
-
--------------------------------------------------------------------------------
-Note: following command can be used to verify the list of events subscribed
-wget --no-check-certificate -qO- https://192.168.4.27:8888/redfish/v1/EventService/Subscriptions | python -m json.tool

@@ -41,10 +41,7 @@ const RfDataCollectDummyInterval = 1000
 //RfDataCollectThreshold :
 const RfDataCollectThreshold = 5
 
-//RfAPIMaxCount = 10
-const RfAPIMaxCount = 10
-
-var redfishResources = []string{"/redfish/v1/Chassis/", "/redfish/v1/Systems/", "/redfish/v1/EthernetSwitches/"}
+var redfishResources = []string{"/redfish/v1/Chassis/"}
 var pvmount = os.Getenv("DEVICE_MANAGEMENT_PVMOUNT")
 var subscriptionListPath string
 var deviceDataPath string
@@ -130,8 +127,7 @@ func (s *Server) addPollingRfAPI(deviceIPAddress string, token string, rfAPI str
 		return http.StatusBadRequest, errors.New("The user account " + userName + " is not available in deivce")
 	}
 	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	privilege := s.getDefineUserPrivilege(deviceIPAddress)
-	if userPrivilege != privilege[0] && userPrivilege != privilege[1] {
+	if userPrivilege != UserPrivileges[0] && userPrivilege != UserPrivileges[1] {
 		logrus.Errorf("The user %s privilege could not configure the Redfish API to this device %s", userName, deviceIPAddress)
 		return http.StatusBadRequest, errors.New("The user privilege could not configure the Redfish API")
 	}
@@ -170,8 +166,7 @@ func (s *Server) removePollingRfAPI(deviceIPAddress string, token string, rfAPI 
 		return http.StatusBadRequest, errors.New("The user account " + userName + " is not available in deivce")
 	}
 	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	privilege := s.getDefineUserPrivilege(deviceIPAddress)
-	if userPrivilege != privilege[0] && userPrivilege != privilege[1] {
+	if userPrivilege != UserPrivileges[0] && userPrivilege != UserPrivileges[1] {
 		logrus.Errorf("The user %s privilege could not remove the Redfish API to this device %s", userName, deviceIPAddress)
 		return http.StatusBadRequest, errors.New("The user privilege could not configure the Redfish API")
 	}
@@ -307,7 +302,7 @@ func (s *Server) removeDeviceFile(deviceIPAddress string, token string) (err err
 		return errors.New("No any device found")
 	}
 	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != s.getDefineUserPrivilege(deviceIPAddress)[0] {
+	if userPrivilege != UserPrivileges[0] {
 		logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
 		return errors.New("The user " + userName + " privilege is not administrator")
 	}
@@ -363,7 +358,7 @@ func (s *Server) removeDeviceDataFile(deviceIPAddress string, token string) (err
 		return errors.New("No any device found")
 	}
 	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != s.getDefineUserPrivilege(deviceIPAddress)[0] {
+	if userPrivilege != UserPrivileges[0] {
 		logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
 		return errors.New("The user " + userName + " privilege is not administrator")
 	}
@@ -433,8 +428,7 @@ func (s *Server) setFrequency(deviceIPAddress string, token string, frequency ui
 		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this device")
 	}
 	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	privilege := s.getDefineUserPrivilege(deviceIPAddress)
-	if userPrivilege != privilege[0] && userPrivilege != privilege[1] {
+	if userPrivilege != UserPrivileges[0] && userPrivilege != UserPrivileges[1] {
 		logrus.Errorf("The user %s privilege could not configure the frequency of querying data from this device %s", userName, deviceIPAddress)
 		return http.StatusBadRequest, errors.New("The user privilege could not configure the frequency of querying data from this device")
 	}
