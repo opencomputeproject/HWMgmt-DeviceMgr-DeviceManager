@@ -93,6 +93,23 @@ kube-system   kube-scheduler-device-manager            1/1     Running   0      
 kube-system   tiller-deploy-66478cb847-4l5fv           1/1     Running   0          19h
 ```
 
+## Install Go/Protobuf package
+
+# Go package Installation
+The go command will use in building the Device Manager source codes.
+```shell
+make go-install
+
+Take effect Go environment variables
+. ~/.bashrc
+```
+
+# Protobuf package installation and download the necessary GO libraries.
+The protoc command will use in building the .proto file.
+```shell
+make prereq
+```
+
 ## Download and build Device management docker image
 The images of device management will be downloaded to the host, And build those source files.
 

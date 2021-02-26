@@ -60,7 +60,8 @@ func (s *Server) getDeviceTemperature(deviceIPAddress string, token string) (ret
 		return nil, http.StatusNoContent, errors.New("Failed to convert temperature data")
 	}
 	dataTemp := bytes.Split(data, []byte(","))
-	var okValue int = 0x0
+	var okValue int
+	okValue = 0x0
 	for _, value := range dataTemp {
 		dataTemp1 := bytes.Split(value, []byte(":"))
 		if len(dataTemp1) == 0 {

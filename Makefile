@@ -72,9 +72,9 @@ help:
 	@echo "dpv                  : Add device persistent volume"
 	@echo "clean-dpv            : Add device persistent volume"
 	@echo "reset-pods           : Remove all kubernetes pods (need sudo password)"
-	@echo "status               : Look the all Pods status
+	@echo "status               : Look the all Pods status"
 	@echo "- Addition commands."
-	@echo "proto/importer.pb.go : Build importer.pb.go for go build ./.."
+	@echo "src/proto/importer.pb.go : Build importer.pb.go for go build ./.."
 	@echo "lint-dockerfile      : Perform static analysis on Dockerfiles"
 	@echo "lint-style           : Verify code is properly gofmt-ed"
 	@echo "lint-sanity          : Verify that 'go vet' doesn't report any issues"
@@ -220,14 +220,17 @@ reset-pods:
 	sudo rm -f /var/lib/cni/networks/nni*/* || true
 	sudo rm -f /var/lib/cni/networks/k8s-pod-network/* || true
 
-proto/importer.pb.go: proto/importer.proto
-	mkdir -p proto
+src/proto/importer.pb.go: src/proto/importer.proto
+	@cd src; \
 	protoc --proto_path=proto \
-	-I"${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis" \
 	--go_out=plugins=grpc:. \
 	proto/importer.proto
 
-build-dm:
+apps/main:
+	@cd src; \
+	GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o ../apps/main .
+
+build-dm: src/proto/importer.pb.go apps/main
 	docker build $(DOCKER_BUILD_ARGS) \
 	-t ${DOCKER_IMAGENAME} \
 	--build-arg org_label_schema_version="${VERSION}" \
@@ -250,7 +253,7 @@ ifeq (,$(shell PATH=$(GOPATH):$(PATH) which hadolint))
 	chmod 755 $(GOPATH)/bin/hadolint
 endif
 	@echo "Running Dockerfile lint check ..."
-	@hadolint $$(find .  -type f -not -path "./vendor/*"  -name "Dockerfile")
+	@hadolint $$(find .  -type f -not -path "./src/vendor/*"  -name "Dockerfile")
 	@echo "Dockerfile lint check OK"
 
 lint-style:
@@ -258,7 +261,7 @@ ifeq (,$(shell which gofmt))
 	go get -u github.com/golang/go/src/cmd/gofmt
 endif
 	@echo "Running style check..."
-	@gofmt_out="$$(gofmt -l $$(find . -name '*.go' -not -path './vendor/*'))" ;\
+	@gofmt_out="$$(gofmt -l $$(find . -name '*.go' -not -path './src/vendor/*'))" ;\
 	if [ ! -z "$$gofmt_out" ]; then \
 	  echo "$$gofmt_out" ;\
 	  echo "Style check failed on one or more files ^, run 'go fmt' to fix." ;\
@@ -266,14 +269,16 @@ endif
 	fi
 	@echo "Style check OK"
 
-lint-sanity:proto/importer.pb.go
+lint-sanity:src/proto/importer.pb.go
 	@echo "Running sanity check..."
-	@go vet -mod=vendor ./...
+	@cd src; \
+	go vet -mod=vendor ./...
 	@echo "Sanity check OK"
 
 lint-mod:
 	@echo "Running dependency check..."
-	@go mod verify
+	@cd src; \
+	go mod verify
 	@echo "Dependency check OK"
 lint: lint-style  lint-dockerfile lint-sanity lint-mod
 

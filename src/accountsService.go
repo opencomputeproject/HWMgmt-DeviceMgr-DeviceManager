@@ -73,7 +73,8 @@ func (s *Server) getUserByToken(deviceIPAddress string, token string) string {
 }
 
 func (s *Server) getUserStatus(deviceIPAddress string, token string, targetUser string) (status bool) {
-	var found bool = false
+	var found bool
+	found = false
 	count := strings.Join(s.getDeviceData(deviceIPAddress, RfAccountsServiceAccounts, token, 1, "Members@odata.count"), " ")
 	if len(count) != 0 {
 		userAPI := RfAccountsServiceAccounts + targetUser

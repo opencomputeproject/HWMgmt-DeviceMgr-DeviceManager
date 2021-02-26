@@ -1,4 +1,4 @@
-module device-management/demo_test
+module devicemanager/demo_test
 
 go 1.13
 

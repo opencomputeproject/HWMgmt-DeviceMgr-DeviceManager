@@ -36,7 +36,7 @@ import (
 	"strconv"
 	"strings"
 
-	importer "device-management/demo_test/proto"
+	importer "devicemanager/demo_test/proto"
 
 	"github.com/Shopify/sarama"
 	logrus "github.com/sirupsen/logrus"

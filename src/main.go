@@ -36,7 +36,7 @@ import (
 	"strings"
 	"time"
 
-	"device-management/proto"
+	importer "devicemanager/proto"
 	"github.com/Shopify/sarama"
 
 	logrus "github.com/sirupsen/logrus"
@@ -159,7 +159,7 @@ func (s *Server) validateIPAddress(ipAddress string) (msg string, ok bool) {
 		return
 	}
 	if port != PsmeDefaultPortNumber {
-		logrus.Errorf("Port number is %s, it should be %d/%d/%d", port, PsmeDefaultPortNumber)
+		logrus.Errorf("Port number is %s, it should be %s", port, PsmeDefaultPortNumber)
 		msg = "Port number " + port + " should be " + PsmeDefaultPortNumber
 		return
 	}

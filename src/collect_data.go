@@ -180,7 +180,8 @@ func (s *Server) removePollingRfAPI(deviceIPAddress string, token string, rfAPI 
 	}
 	if len(s.devicemap[deviceIPAddress].RfAPIList) != 0 {
 		list := s.devicemap[deviceIPAddress].RfAPIList
-		var found bool = false
+		var found bool
+		found = false
 		for key, data := range list {
 			if data == rfAPI {
 				s.devicemap[deviceIPAddress].RfAPIList = append(list[:key], list[key+1:]...)

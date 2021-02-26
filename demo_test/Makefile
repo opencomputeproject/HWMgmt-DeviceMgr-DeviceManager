@@ -31,4 +31,4 @@ demotest: proto/importer.pb.go
 	GO111MODULE=on go build -mod=vendor -i -v -o $@
 
 proto/importer.pb.go: proto/importer.proto
-	cd .. && make proto/importer.pb.go
+	cd .. && make src/proto/importer.pb.go

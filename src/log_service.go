@@ -87,7 +87,7 @@ func (s *Server) resetDeviceLogData(deviceIPAddress string, token string) (statu
 	}
 	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
 	if userPrivilege != UserPrivileges[0] && userPrivilege != UserPrivileges[1] {
-		logrus.Errorf("The user %s privilege could not change Log sevice state from this device %s", deviceIPAddress)
+		logrus.Errorf("The user %s privilege could not change Log sevice state from this device %s", userName, deviceIPAddress)
 		return http.StatusBadRequest, errors.New("The user privilege could not change state from  this device")
 	}
 	ServiceInfo := map[string]interface{}{}
