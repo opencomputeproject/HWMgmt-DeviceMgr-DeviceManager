@@ -34,17 +34,18 @@ import (
 	"strings"
 )
 
-type OutputType uint8
-
+//GlobalConfigSpec ...
 type GlobalConfigSpec struct {
 	Kafka    string `yaml:"kafka"`
 	Local    string `yaml:"local"`
 	Importer string `yaml:"importer"`
 }
 
+//CharReplacer ...
 var (
 	CharReplacer = strings.NewReplacer("\\t", "\t", "\\n", "\n")
 
+	//GlobalConfig ...
 	GlobalConfig = GlobalConfigSpec{
 		Kafka:    "kafka_ip.sh",
 		Local:    ":9999",
@@ -66,6 +67,7 @@ var (
 	Error = log.New(os.Stderr, "ERROR: ", 0)
 )
 
+//ParseCommandLine ...
 func ParseCommandLine() {
 	parser := flags.NewNamedParser(path.Base(os.Args[0]),
 		flags.HelpFlag|flags.PassDoubleDash|flags.PassAfterNonOption)
@@ -91,6 +93,7 @@ func ParseCommandLine() {
 	}
 }
 
+//ProcessGlobalOptions ...
 func ProcessGlobalOptions() {
 	if len(GlobalOptions.Config) == 0 {
 		home, err := os.UserHomeDir()
@@ -124,6 +127,7 @@ func ProcessGlobalOptions() {
 	}
 }
 
+//ShowGlobalOptions ...
 func ShowGlobalOptions() {
 	log.Printf("Configuration:")
 	log.Printf("    Kafka: %v", GlobalConfig.Kafka)

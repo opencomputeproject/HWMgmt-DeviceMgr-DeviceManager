@@ -1,4 +1,4 @@
-/* Edgecore DeviceManager
+/*Edgecore DeviceManager
  * Copyright 2020-2021 Edgecore Networks, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -34,14 +34,14 @@ import (
 	"strings"
 )
 
-type OutputType uint8
-
+//GlobalConfigSpec ...
 type GlobalConfigSpec struct {
 	Kafka     string `yaml:"kafka"`
 	Local     string `yaml:"local"`
 	LocalGrpc string `yaml:"localgrpc"`
 }
 
+//CharReplacer ...
 var (
 	CharReplacer = strings.NewReplacer("\\t", "\t", "\\n", "\n")
 
@@ -66,6 +66,7 @@ var (
 	Error = log.New(os.Stderr, "ERROR: ", 0)
 )
 
+//ParseCommandLine ...
 func ParseCommandLine() {
 	parser := flags.NewNamedParser(path.Base(os.Args[0]),
 		flags.HelpFlag|flags.PassDoubleDash|flags.PassAfterNonOption)
@@ -91,6 +92,7 @@ func ParseCommandLine() {
 	}
 }
 
+//ProcessGlobalOptions ...
 func ProcessGlobalOptions() {
 	if len(GlobalOptions.Config) == 0 {
 		home, err := os.UserHomeDir()
@@ -124,6 +126,7 @@ func ProcessGlobalOptions() {
 	}
 }
 
+//ShowGlobalOptions ...
 func ShowGlobalOptions() {
 	log.Printf("Configuration:")
 	log.Printf("    Kafka: %v", GlobalConfig.Kafka)

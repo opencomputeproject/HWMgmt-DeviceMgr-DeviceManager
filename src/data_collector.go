@@ -1,4 +1,4 @@
-/* Edgecore DeviceManager
+/*Edgecore DeviceManager
  * Copyright 2020-2021 Edgecore Networks, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -41,17 +41,17 @@ func addTimestampToDeviceData(deviceData map[string]interface{}) (retData []stri
 		var jsonData []byte
 		jsonData, err = json.Marshal(deviceData)
 		if err != nil {
-			return nil, http.StatusInternalServerError, errors.New("HTTP Data update error !")
+			return nil, http.StatusInternalServerError, errors.New("HTTP Data update error")
 		}
 		nowTime := time.Now()
 		jsonData = jsonData[1:]
 		dataSlice = append(dataSlice, "{\"DataTimestamp\":\""+nowTime.Format("01-02-2006 15:04:05")+"\","+string(jsonData))
 		err = json.Unmarshal([]byte(dataSlice[0]), &deviceData)
 		if err != nil {
-			return nil, http.StatusInternalServerError, errors.New("The data slice is incorrect !")
+			return nil, http.StatusInternalServerError, errors.New("The data slice is incorrect")
 		}
 	} else {
-		return nil, http.StatusNoContent, errors.New("Device data is empty !")
+		return nil, http.StatusNoContent, errors.New("Device data is empty")
 	}
 	return dataSlice, http.StatusOK, nil
 }
@@ -133,7 +133,7 @@ func parseArray(anarray []interface{}, level uint, levelPos uint, archive map[st
 Based on careful examination of the data returned from several resources sampled, it was determined that sub-folder paths can be found as the value to the key '@odata.id' showing up at the 2nd level of the data read from a resource.
 */
 func readDeviceResource(deviceIPAddress string, resource string, archive map[string]bool, token string) (data []string) {
-	body, err, statusCode := getHTTPBodyByRfAPI(deviceIPAddress, resource, token)
+	body, statusCode, err := getHTTPBodyByRfAPI(deviceIPAddress, resource, token)
 	if err != nil {
 		logrus.Errorf("Failed to get the HTTP body %s, status code %d", err, statusCode)
 		return
@@ -234,25 +234,25 @@ func (s *Server) genericDeviceAccess(deviceIPAddress string, RfAPI string, token
 	}
 	switch httpMethod {
 	case "GET":
-		httpData, _, statusCode = getHTTPBodyDataByRfAPI(deviceIPAddress, RfAPI, token)
+		httpData, statusCode, _ = getHTTPBodyDataByRfAPI(deviceIPAddress, RfAPI, token)
 		if statusCode != http.StatusOK {
 			logrus.Errorf("Failed to get device data, status code %d", statusCode)
 			return http.StatusNotFound, httpData, errors.New("Failed to get device data")
 		}
 	case "POST":
-		_, httpData, _, statusCode = postHTTPDataByRfAPI(deviceIPAddress, RfAPI, token, httpPostData)
+		_, httpData, statusCode, _ = postHTTPDataByRfAPI(deviceIPAddress, RfAPI, token, httpPostData)
 		if statusCode != http.StatusOK && statusCode != http.StatusCreated {
 			logrus.Errorf("Failed to post data to device, status code %d", statusCode)
 			return statusCode, httpData, errors.New("Failed to post data to device")
 		}
 	case "DELETE":
-		_, _, statusCode = deleteHTTPDataByRfAPI(deviceIPAddress, RfAPI, token, httpDeleteData)
+		_, statusCode, _ = deleteHTTPDataByRfAPI(deviceIPAddress, RfAPI, token, httpDeleteData)
 		if statusCode != http.StatusOK {
 			logrus.Errorf("Failed to delete device data, status code %d, delete data %s", statusCode, httpDeleteData)
 			return statusCode, httpData, errors.New("Failed to delete device data")
 		}
 	case "PATCH":
-		_, httpData, _, statusCode = patchHTTPDataByRfAPI(deviceIPAddress, RfAPI, token, httpPatchData)
+		_, httpData, statusCode, _ = patchHTTPDataByRfAPI(deviceIPAddress, RfAPI, token, httpPatchData)
 		if statusCode != http.StatusOK {
 			logrus.Errorf("Failed to patch device data, status code %d, delete data %s", statusCode, httpPatchData)
 			return statusCode, httpData, errors.New("Failed to patch device data")

@@ -153,6 +153,7 @@ kubeadm:
 	@rm -rf /tmp/helm.tgz /tmp/${HELM_PLATFORM}
 
 helm:
+	helm init --client-only --skip-refresh
 	kubectl create serviceaccount --namespace kube-system tiller
 	kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
 	helm init --service-account tiller

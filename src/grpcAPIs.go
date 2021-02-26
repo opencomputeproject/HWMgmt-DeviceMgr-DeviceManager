@@ -1,4 +1,4 @@
-/* Edgecore DeviceManager
+/*Edgecore DeviceManager
  * Copyright 2020-2021 Edgecore Networks, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -65,6 +65,7 @@ type device struct {
 	RfAPIList          []string          `json:"redfishAPIList"`
 }
 
+//Server ...
 type Server struct {
 	devicemap    map[string]*device
 	gRPCserver   *grpc.Server
@@ -72,6 +73,7 @@ type Server struct {
 	httpclient   *http.Client
 }
 
+//SetFrequency ...
 func (s *Server) SetFrequency(c context.Context, freqInfo *importer.FreqInfo) (*empty.Empty, error) {
 	logrus.Info("Received SetFrequency")
 	var ipAddress, token string
@@ -112,6 +114,7 @@ func (s *Server) SetFrequency(c context.Context, freqInfo *importer.FreqInfo) (*
 	return &empty.Empty{}, nil
 }
 
+//DeleteDeviceList ...
 func (s *Server) DeleteDeviceList(c context.Context, device *importer.Device) (*empty.Empty, error) {
 	var token, ipAddress string
 	logrus.Info("DeleteDeviceList received")
@@ -161,14 +164,14 @@ func (s *Server) DeleteDeviceList(c context.Context, device *importer.Device) (*
 	return &empty.Empty{}, nil
 }
 
+//SendDeviceList ...
 func (s *Server) SendDeviceList(c context.Context, list *importer.DeviceList) (*empty.Empty, error) {
 	for _, dev := range list.Device {
 		var ipAddress string
 		if dev == nil || len(dev.IpAddress) == 0 {
 			return &empty.Empty{}, status.Errorf(http.StatusBadRequest, "No Device found")
-		} else {
-			ipAddress = dev.IpAddress
 		}
+		ipAddress = dev.IpAddress
 		if msg, ok := s.validateIPAddress(ipAddress); !ok {
 			logrus.WithFields(logrus.Fields{
 				"IP address:port": ipAddress}).Info(msg)
@@ -215,6 +218,7 @@ func (s *Server) SendDeviceList(c context.Context, list *importer.DeviceList) (*
 	return &empty.Empty{}, nil
 }
 
+//StartQueryDeviceData ...
 func (s *Server) StartQueryDeviceData(c context.Context, account *importer.DeviceAccount) (*empty.Empty, error) {
 	var userName, token, ipAddress string
 	if account == nil || len(account.IpAddress) == 0 {
@@ -251,6 +255,7 @@ func (s *Server) StartQueryDeviceData(c context.Context, account *importer.Devic
 	return &empty.Empty{}, nil
 }
 
+//StopQueryDeviceData ...
 func (s *Server) StopQueryDeviceData(c context.Context, account *importer.DeviceAccount) (*empty.Empty, error) {
 	var userName, token, ipAddress string
 	if account == nil || len(account.IpAddress) == 0 {
@@ -303,7 +308,7 @@ func (s *Server) GetCurrentDevices(c context.Context, e *importer.Empty) (*impor
 	return deviceList, nil
 }
 
-//CreateDeviceUser :
+//CreateDeviceAccount ...
 func (s *Server) CreateDeviceAccount(c context.Context, account *importer.DeviceAccount) (*empty.Empty, error) {
 	logrus.Infof("In Received CreateDeviceAccount")
 	var token, newUsername, newPassword, ipAddress string
@@ -352,6 +357,7 @@ func (s *Server) CreateDeviceAccount(c context.Context, account *importer.Device
 	return &empty.Empty{}, nil
 }
 
+//RemoveDeviceAccount ...
 func (s *Server) RemoveDeviceAccount(c context.Context, account *importer.DeviceAccount) (*empty.Empty, error) {
 	logrus.Infof("In Received RemoveDeviceAccount")
 	var token, removeUser, ipAddress string
@@ -397,6 +403,7 @@ func (s *Server) RemoveDeviceAccount(c context.Context, account *importer.Device
 	return &empty.Empty{}, nil
 }
 
+//LoginDevice ...
 func (s *Server) LoginDevice(c context.Context, account *importer.DeviceAccount) (*importer.DeviceAccount, error) {
 	logrus.Infof("In Received LoginDevice")
 	deviceAccount := new(importer.DeviceAccount)
@@ -441,6 +448,7 @@ func (s *Server) LoginDevice(c context.Context, account *importer.DeviceAccount)
 	return deviceAccount, nil
 }
 
+//LogoutDevice ...
 func (s *Server) LogoutDevice(c context.Context, account *importer.DeviceAccount) (*empty.Empty, error) {
 	logrus.Infof("In Received LogoutDevice")
 	var token, logoutUsername, ipAddress string
@@ -488,6 +496,7 @@ func (s *Server) LogoutDevice(c context.Context, account *importer.DeviceAccount
 	return &empty.Empty{}, nil
 }
 
+//ChangeDeviceUserPassword ...
 func (s *Server) ChangeDeviceUserPassword(c context.Context, account *importer.DeviceAccount) (*empty.Empty, error) {
 	logrus.Infof("In Received ChangeDeviceUserPassword")
 	var token, password, userName, ipAddress string
@@ -528,6 +537,7 @@ func (s *Server) ChangeDeviceUserPassword(c context.Context, account *importer.D
 	return &empty.Empty{}, nil
 }
 
+//ListDeviceAccounts ...
 func (s *Server) ListDeviceAccounts(c context.Context, account *importer.DeviceAccount) (*importer.DeviceAccountList, error) {
 	var token, ipAddress string
 	if account == nil || len(account.IpAddress) == 0 {
@@ -559,6 +569,7 @@ func (s *Server) ListDeviceAccounts(c context.Context, account *importer.DeviceA
 	return deviceAccountLists, nil
 }
 
+//SetSessionService ...
 func (s *Server) SetSessionService(c context.Context, device *importer.DeviceAccount) (*empty.Empty, error) {
 	var token, ipAddress string
 	var sessionEnabled bool
@@ -601,6 +612,7 @@ func (s *Server) SetSessionService(c context.Context, device *importer.DeviceAcc
 	return &empty.Empty{}, nil
 }
 
+//GetDeviceData ...
 func (s *Server) GetDeviceData(c context.Context, device *importer.Device) (*importer.DeviceData, error) {
 	var redfishAPI, token, ipAddress string
 	var deviceData []string
@@ -646,6 +658,7 @@ func (s *Server) GetDeviceData(c context.Context, device *importer.Device) (*imp
 	return deviceRedfishData, nil
 }
 
+//GenericDeviceAccess ...
 func (s *Server) GenericDeviceAccess(c context.Context, device *importer.Device) (*importer.HttpData, error) {
 	logrus.Info("Received GenericDeviceAccess")
 	var httpMethod, token, redfishAPI, ipAddress, httpDeleteData string
@@ -729,6 +742,7 @@ func (s *Server) GenericDeviceAccess(c context.Context, device *importer.Device)
 	}, nil
 }
 
+//EnableLogServiceState ...
 func (s *Server) EnableLogServiceState(c context.Context, logDevice *importer.LogService) (*empty.Empty, error) {
 	var token, ipAddress string
 	var logServiceEnabled bool
@@ -768,6 +782,7 @@ func (s *Server) EnableLogServiceState(c context.Context, logDevice *importer.Lo
 	return &empty.Empty{}, nil
 }
 
+//ResetDeviceLogData ...
 func (s *Server) ResetDeviceLogData(c context.Context, logDevice *importer.LogService) (*empty.Empty, error) {
 	var token, ipAddress string
 	if logDevice == nil || len(logDevice.IpAddress) == 0 {
@@ -804,6 +819,7 @@ func (s *Server) ResetDeviceLogData(c context.Context, logDevice *importer.LogSe
 	return &empty.Empty{}, nil
 }
 
+//GetDeviceLogData ...
 func (s *Server) GetDeviceLogData(c context.Context, logDevice *importer.LogService) (*importer.LogService, error) {
 	var token, ipAddress string
 	if logDevice == nil || len(logDevice.IpAddress) == 0 {
@@ -842,6 +858,7 @@ func (s *Server) GetDeviceLogData(c context.Context, logDevice *importer.LogServ
 	return deviceLogData, nil
 }
 
+//AddPollingRfAPI ...
 func (s *Server) AddPollingRfAPI(c context.Context, pollingRfAPI *importer.PollingRfAPI) (*empty.Empty, error) {
 	var token, ipAddress, rfAPI string
 	if pollingRfAPI == nil || len(pollingRfAPI.IpAddress) == 0 {
@@ -879,6 +896,7 @@ func (s *Server) AddPollingRfAPI(c context.Context, pollingRfAPI *importer.Polli
 	return &empty.Empty{}, nil
 }
 
+//RemovePollingRfAPI ...
 func (s *Server) RemovePollingRfAPI(c context.Context, pollingRfAPI *importer.PollingRfAPI) (*empty.Empty, error) {
 	var token, ipAddress, rfAPI string
 	if pollingRfAPI == nil || len(pollingRfAPI.IpAddress) == 0 {
@@ -916,6 +934,7 @@ func (s *Server) RemovePollingRfAPI(c context.Context, pollingRfAPI *importer.Po
 	return &empty.Empty{}, nil
 }
 
+//GetRfAPIList ...
 func (s *Server) GetRfAPIList(c context.Context, pollingRfAPI *importer.PollingRfAPI) (*importer.RfAPIList, error) {
 	var ipAddress, token string
 	if pollingRfAPI == nil || len(pollingRfAPI.IpAddress) == 0 {
@@ -949,6 +968,7 @@ func (s *Server) GetRfAPIList(c context.Context, pollingRfAPI *importer.PollingR
 	return rfAPIList, nil
 }
 
+//GetDeviceTemperatures ...
 func (s *Server) GetDeviceTemperatures(c context.Context, deviceTemperature *importer.DeviceTemperature) (*importer.DeviceTemperature, error) {
 	var token, ipAddress string
 	if deviceTemperature == nil || len(deviceTemperature.IpAddress) == 0 {

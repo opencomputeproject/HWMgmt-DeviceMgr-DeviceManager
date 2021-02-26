@@ -1,4 +1,4 @@
-/* Edgecore DeviceManager
+/*Edgecore DeviceManager
  * Copyright 2020-2021 Edgecore Networks, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -43,6 +43,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+//PsmeDefaultPortNumber ...
 const PsmeDefaultPortNumber = "8888"
 
 var lock sync.Mutex
@@ -50,6 +51,7 @@ var (
 	importerTopic = "importer"
 )
 
+//NewGrpcServer ...
 func NewGrpcServer(grpcport string) (l net.Listener, g *grpc.Server, e error) {
 	logrus.Infof("Listening %s\n", grpcport)
 	g = grpc.NewServer()

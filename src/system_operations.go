@@ -1,4 +1,4 @@
-/* Edgecore DeviceManager
+/*Edgecore DeviceManager
  * Copyright 2020-2021 Edgecore Networks, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -31,10 +31,10 @@ import (
 	logrus "github.com/sirupsen/logrus"
 )
 
-//RfChassis
+//RfChassis ...
 const RfChassis = "/redfish/v1/Chassis/"
 
-//RfDeviceTemperature
+//RfDeviceTemperature ...
 const RfDeviceTemperature = RfChassis + "1/Thermal/"
 
 func (s *Server) getDeviceTemperature(deviceIPAddress string, token string) (retData []string, statusCode int, err error) {
@@ -49,7 +49,7 @@ func (s *Server) getDeviceTemperature(deviceIPAddress string, token string) (ret
 	}
 	mapData := make(map[string]interface{})
 	dataSlice := []string{}
-	tempData, _, statusCode := getHTTPBodyDataByRfAPI(deviceIPAddress, RfDeviceTemperature, token)
+	tempData, statusCode, _ := getHTTPBodyDataByRfAPI(deviceIPAddress, RfDeviceTemperature, token)
 	if tempData == nil {
 		logrus.Errorf("Failed to get device temperature data")
 		return nil, statusCode, errors.New("Failed to get device temperature data")

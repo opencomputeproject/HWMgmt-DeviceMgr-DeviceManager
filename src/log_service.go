@@ -1,4 +1,4 @@
-/* Edgecore DeviceManager
+/*Edgecore DeviceManager
  * Copyright 2020-2021 Edgecore Networks, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -30,10 +30,10 @@ import (
 	logrus "github.com/sirupsen/logrus"
 )
 
-//RfManager
+//RfManager ...
 const RfManager = "/redfish/v1/Managers/"
 
-//RfLogService
+//RfLogService ...
 const RfLogService = RfManager + "1/LogServices/1/"
 
 func (s *Server) checkLogServiceState(deviceIPAddress string, token string) (state bool) {
@@ -67,7 +67,7 @@ func (s *Server) changeDeviceLogService(deviceIPAddress string, token string, st
 	}
 	ServiceInfo := map[string]interface{}{}
 	ServiceInfo["ServiceEnabled"] = state
-	_, _, _, statusCode = patchHTTPDataByRfAPI(deviceIPAddress, RfLogService, token, ServiceInfo)
+	_, _, statusCode, _ = patchHTTPDataByRfAPI(deviceIPAddress, RfLogService, token, ServiceInfo)
 	if statusCode != http.StatusNoContent {
 		logrus.Errorf("Failed to set log service state to device %s, status code %d", deviceIPAddress, statusCode)
 		return statusCode, errors.New("Failed to set log service state to device " + deviceIPAddress)
@@ -92,7 +92,7 @@ func (s *Server) resetDeviceLogData(deviceIPAddress string, token string) (statu
 	}
 	ServiceInfo := map[string]interface{}{}
 	ServiceInfo[""] = ""
-	_, _, _, statusCode = postHTTPDataByRfAPI(deviceIPAddress, RfLogService+"Actions/LogService.Reset", token, ServiceInfo)
+	_, _, statusCode, _ = postHTTPDataByRfAPI(deviceIPAddress, RfLogService+"Actions/LogService.Reset", token, ServiceInfo)
 	if statusCode != http.StatusOK {
 		logrus.Errorf("Failed to reset log data to device %s, status code %d", deviceIPAddress, statusCode)
 		return statusCode, errors.New("Failed to reset log data to device " + deviceIPAddress)
@@ -111,7 +111,7 @@ func (s *Server) getDeviceLogData(deviceIPAddress string, token string) (retData
 		return nil, http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this deivce")
 	}
 	dataSlice := []string{}
-	httpData, _, statusCode := getHTTPBodyDataByRfAPI(deviceIPAddress, RfLogService+"Entries", token)
+	httpData, statusCode, _ := getHTTPBodyDataByRfAPI(deviceIPAddress, RfLogService+"Entries", token)
 	if statusCode != http.StatusOK || httpData == nil {
 		logrus.Errorf("Failed to get device data, status code %d", statusCode)
 		return nil, statusCode, errors.New("Failed to get device data")
@@ -119,7 +119,7 @@ func (s *Server) getDeviceLogData(deviceIPAddress string, token string) (retData
 	var jsonData []byte
 	jsonData, err = json.Marshal(httpData)
 	if err != nil {
-		return nil, http.StatusInternalServerError, errors.New("HTTP Data update error !")
+		return nil, http.StatusInternalServerError, errors.New("HTTP Data update error")
 	}
 	dataSlice = append(dataSlice, string(jsonData))
 	return dataSlice, statusCode, nil

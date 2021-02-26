@@ -45,39 +45,25 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var EVENTS_MAP = map[string]string{
-	"add":    "ResourceAdded",
-	"rm":     "ResourceRemoved",
-	"alert":  "Alert",
-	"update": "ResourceUpdated"}
-
-var BOOTS_MAP = map[string]string{
-	"open":      "Open Network Linux",
-	"diag":      "ONIE:diag",
-	"embed":     "ONIE:embed",
-	"install":   "ONIE:install",
-	"rescue":    "ONIE:rescue",
-	"uninstall": "ONIE:uninstall",
-	"update":    "ONIE:update",
-	"sonic":     "SONiC-OS"}
-
 var importerTopic = "importer"
+
+//DataConsumer  ...
 var DataConsumer sarama.Consumer
 
 var cc importer.DeviceManagementClient
 var ctx context.Context
 var conn *grpc.ClientConn
 
-func GetCurrentDevices() (error, []string) {
+//GetCurrentDevices ...
+func GetCurrentDevices() ([]string, error) {
 	logrus.Info("Testing GetCurrentDevices")
 	empty := new(importer.Empty)
-	var ret_msg *importer.DeviceListByIp
-	ret_msg, err := cc.GetCurrentDevices(ctx, empty)
+	var retMsg *importer.DeviceListByIp
+	retMsg, err := cc.GetCurrentDevices(ctx, empty)
 	if err != nil {
-		return err, nil
-	} else {
-		return err, ret_msg.IpAddress
+		return nil, err
 	}
+	return retMsg.IpAddress, err
 }
 
 func getRealSizeOf(v interface{}) (int, error) {
@@ -282,13 +268,13 @@ func main() {
 			loop = false
 			newmessage = "QUIT"
 		case "showdevices":
-			cmd_size := len(s)
-			logrus.Infof("cmd is : %s cmd_size: %d", cmd, cmd_size)
-			if cmd_size > 2 || cmd_size < 0 {
+			cmdSize := len(s)
+			logrus.Infof("cmd is : %s cmdSize: %d", cmd, cmdSize)
+			if cmdSize > 2 || cmdSize < 0 {
 				logrus.Error("showdevices error !!")
 				newmessage = "showdevices error !!"
 			} else {
-				err, currentlist := GetCurrentDevices()
+				currentlist, err := GetCurrentDevices()
 
 				if err != nil {
 					errStatus, _ := status.FromError(err)
@@ -390,14 +376,14 @@ func main() {
 				deviceAccount.IpAddress = info[0] + ":" + info[1]
 				deviceAccount.ActUsername = info[2]
 				deviceAccount.ActPassword = info[3]
-				ret_msg, err := cc.LoginDevice(ctx, deviceAccount)
+				retMsg, err := cc.LoginDevice(ctx, deviceAccount)
 				if err != nil {
 					errStatus, _ := status.FromError(err)
 					newmessage = newmessage + errStatus.Message()
 					logrus.Errorf("login device error - status code %v message %v", errStatus.Code(), errStatus.Message())
 				} else {
-					logrus.Info("logindevice token ", ret_msg.Httptoken)
-					newmessage = newmessage + deviceAccount.IpAddress + " token : " + ret_msg.Httptoken + " logined"
+					logrus.Info("logindevice token ", retMsg.Httptoken)
+					newmessage = newmessage + deviceAccount.IpAddress + " token : " + retMsg.Httptoken + " logined"
 				}
 			}
 		case "logoutdevice":
@@ -532,15 +518,15 @@ func main() {
 				rfList := new(importer.PollingRfAPI)
 				rfList.IpAddress = info[0] + ":" + info[1]
 				rfList.UserToken = info[2]
-				ret_msg, err := cc.GetRfAPIList(ctx, rfList)
+				retMsg, err := cc.GetRfAPIList(ctx, rfList)
 				if err != nil {
 					errStatus, _ := status.FromError(err)
 					newmessage = newmessage + errStatus.Message()
 					logrus.Errorf("list polling Redfish API error - status code %v message %v", errStatus.Code(), errStatus.Message())
 				} else {
-					logrus.Info(ret_msg.RfAPIList[:])
-					sort.Strings(ret_msg.RfAPIList[:])
-					s := fmt.Sprint(ret_msg.RfAPIList[:])
+					logrus.Info(retMsg.RfAPIList[:])
+					sort.Strings(retMsg.RfAPIList[:])
+					s := fmt.Sprint(retMsg.RfAPIList[:])
 					newmessage = newmessage + "Polling Redfish API list : " + s
 				}
 			}
@@ -654,15 +640,15 @@ func main() {
 			deviceLogService := new(importer.LogService)
 			deviceLogService.IpAddress = args[0] + ":" + args[1]
 			deviceLogService.UserToken = args[2]
-			ret_msg, err := cc.GetDeviceLogData(ctx, deviceLogService)
+			retMsg, err := cc.GetDeviceLogData(ctx, deviceLogService)
 			if err != nil {
 				errStatus, _ := status.FromError(err)
 				newmessage = errStatus.Message()
 				logrus.Errorf("get device log data error - status code %v message %v", errStatus.Code(), errStatus.Message())
 			} else {
-				logrus.Info("getdevicelogdata ", ret_msg.LogData)
-				sort.Strings(ret_msg.LogData[:])
-				newmessage = strings.Join(ret_msg.LogData[:], " ")
+				logrus.Info("getdevicelogdata ", retMsg.LogData)
+				sort.Strings(retMsg.LogData[:])
+				newmessage = strings.Join(retMsg.LogData[:], " ")
 			}
 		case "getdevicetemperaturedata":
 			if len(s) != 2 {
@@ -677,15 +663,15 @@ func main() {
 			deviceTemperature := new(importer.DeviceTemperature)
 			deviceTemperature.IpAddress = args[0] + ":" + args[1]
 			deviceTemperature.UserToken = args[2]
-			ret_msg, err := cc.GetDeviceTemperatures(ctx, deviceTemperature)
+			retMsg, err := cc.GetDeviceTemperatures(ctx, deviceTemperature)
 			if err != nil {
 				errStatus, _ := status.FromError(err)
 				newmessage = errStatus.Message()
 				logrus.Errorf("get device temperature data error - status code %v message %v", errStatus.Code(), errStatus.Message())
 			} else {
-				logrus.Info("getdevicetemeraturedata ", ret_msg.TempData)
-				sort.Strings(ret_msg.TempData[:])
-				newmessage = strings.Join(ret_msg.TempData[:], " ")
+				logrus.Info("getdevicetemeraturedata ", retMsg.TempData)
+				sort.Strings(retMsg.TempData[:])
+				newmessage = strings.Join(retMsg.TempData[:], " ")
 			}
 		case "getdevicedata":
 			if len(s) != 2 {
@@ -703,15 +689,15 @@ func main() {
 			deviceaccountinfo.UserToken = args[2]
 			currentdeviceinfo.RedfishAPI = args[3]
 			currentdeviceinfo.DeviceAccount = deviceaccountinfo
-			ret_msg, err := cc.GetDeviceData(ctx, currentdeviceinfo)
+			retMsg, err := cc.GetDeviceData(ctx, currentdeviceinfo)
 			if err != nil {
 				errStatus, _ := status.FromError(err)
 				newmessage = errStatus.Message()
 				logrus.Errorf("get device data error - status code %v message %v", errStatus.Code(), errStatus.Message())
 			} else {
-				logrus.Info("getdevicedata ", ret_msg.DeviceData)
-				sort.Strings(ret_msg.DeviceData[:])
-				newmessage = strings.Join(ret_msg.DeviceData[:], " ")
+				logrus.Info("getdevicedata ", retMsg.DeviceData)
+				sort.Strings(retMsg.DeviceData[:])
+				newmessage = strings.Join(retMsg.DeviceData[:], " ")
 			}
 		case "deviceaccess":
 			if len(s) != 2 {
@@ -764,13 +750,13 @@ func main() {
 					currentdeviceinfo.HttpInfo = devicehttpinfo
 				}
 			}
-			ret_msg, err := cc.GenericDeviceAccess(ctx, currentdeviceinfo)
+			retMsg, err := cc.GenericDeviceAccess(ctx, currentdeviceinfo)
 			if err != nil {
 				errStatus, _ := status.FromError(err)
 				newmessage = errStatus.Message()
 				logrus.Errorf("get device data error - status code %v message %v", errStatus.Code(), errStatus.Message())
 			} else {
-				newmessage = ret_msg.ResultData
+				newmessage = retMsg.ResultData
 			}
 		case "listcommands":
 			newmessage = newmessage + `The commands list :

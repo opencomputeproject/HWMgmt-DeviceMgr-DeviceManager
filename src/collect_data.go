@@ -1,4 +1,4 @@
-/* Edgecore DeviceManager
+/*Edgecore DeviceManager
  * Copyright 2020-2021 Edgecore Networks, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -132,8 +132,8 @@ func (s *Server) addPollingRfAPI(deviceIPAddress string, token string, rfAPI str
 		return http.StatusBadRequest, errors.New("The user privilege could not configure the Redfish API")
 	}
 	if len(rfAPI) == 0 {
-		logrus.Errorf("The Redfish API is empty !")
-		return http.StatusBadRequest, errors.New("The Redfish API is empty !")
+		logrus.Errorf("The Redfish API is empty")
+		return http.StatusBadRequest, errors.New("The Redfish API is empty")
 	}
 	lastByte := rfAPI[len(rfAPI)-1:]
 	if lastByte != "/" {
@@ -141,13 +141,13 @@ func (s *Server) addPollingRfAPI(deviceIPAddress string, token string, rfAPI str
 	}
 	odata := s.getDeviceData(deviceIPAddress, rfAPI, token, 1, "@odata.id")
 	if odata == nil {
-		logrus.Errorf("The Redfish API is invalid !")
-		return http.StatusBadRequest, errors.New("The Redfish API is invalid !")
+		logrus.Errorf("The Redfish API is invalid")
+		return http.StatusBadRequest, errors.New("The Redfish API is invalid")
 	}
 	for _, api := range s.devicemap[deviceIPAddress].RfAPIList {
 		if api == rfAPI {
-			logrus.Errorf("The Redfish API is exists !")
-			return http.StatusBadRequest, errors.New("The Redfish API is exits !")
+			logrus.Errorf("The Redfish API is exists")
+			return http.StatusBadRequest, errors.New("The Redfish API is exits")
 		}
 	}
 	s.devicemap[deviceIPAddress].RfAPIList = append(s.devicemap[deviceIPAddress].RfAPIList, rfAPI)
@@ -171,8 +171,8 @@ func (s *Server) removePollingRfAPI(deviceIPAddress string, token string, rfAPI 
 		return http.StatusBadRequest, errors.New("The user privilege could not configure the Redfish API")
 	}
 	if len(rfAPI) == 0 {
-		logrus.Errorf("The Redfish API is empty !")
-		return http.StatusBadRequest, errors.New("The Redfish API is empty !")
+		logrus.Errorf("The Redfish API is empty")
+		return http.StatusBadRequest, errors.New("The Redfish API is empty")
 	}
 	lastByte := rfAPI[len(rfAPI)-1:]
 	if lastByte != "/" {

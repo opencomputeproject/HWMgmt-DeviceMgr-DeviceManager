@@ -1,4 +1,4 @@
-/* Edgecore DeviceManager
+/*Edgecore DeviceManager
  * Copyright 2020-2021 Edgecore Networks, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -91,7 +91,7 @@ func (s *Server) getUserStatus(deviceIPAddress string, token string, targetUser 
 }
 
 func (s *Server) getUserPrivilege(deviceIPAddress string, token string, targetUser string) string {
-	var roleId string
+	var roleID string
 	count := strings.Join(s.getDeviceData(deviceIPAddress, RfAccountsServiceAccounts, token, 1, "Members@odata.count"), " ")
 	if len(count) != 0 {
 		userAPI := RfAccountsServiceAccounts + targetUser
@@ -99,13 +99,13 @@ func (s *Server) getUserPrivilege(deviceIPAddress string, token string, targetUs
 		if userList != nil {
 			for _, user := range userList {
 				if user == userAPI {
-					roleId = strings.Join(s.getDeviceData(deviceIPAddress, userAPI, token, 1, "RoleId"), " ")
+					roleID = strings.Join(s.getDeviceData(deviceIPAddress, userAPI, token, 1, "RoleId"), " ")
 					break
 				}
 			}
 		}
 	}
-	return roleId
+	return roleID
 }
 
 func (s *Server) getLoginStatus(deviceIPAddress string, token string, targetUser string) bool {
@@ -173,7 +173,7 @@ func (s *Server) createDeviceAccount(deviceIPAddress string, token string, newUs
 	}
 	userInfo["Enabled"] = true
 	userInfo["Locked"] = false
-	_, _, _, statusCode = postHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts, token, userInfo)
+	_, _, statusCode, _ = postHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts, token, userInfo)
 	if statusCode != http.StatusCreated {
 		logrus.Errorf("Failed to create device account %s, status code %d", newUserName, statusCode)
 		return statusCode, errors.New("Failed to create device account " + newUserName)
@@ -196,18 +196,16 @@ func (s *Server) removeDeviceAccount(deviceIPAddress string, token string, remov
 	if userPrivilege != UserPrivileges[0] {
 		logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
 		return http.StatusBadRequest, errors.New("The user " + userName + " privilege is not administrator")
-	} else {
-		if userName == removeUser {
-			logrus.Errorf("The user %s could not remove itself, device %s", userName, deviceIPAddress)
-			return http.StatusBadRequest, errors.New("The user " + userName + " could not remove itself")
-		}
+	} else if userName == removeUser {
+		logrus.Errorf("The user %s could not remove itself, device %s", userName, deviceIPAddress)
+		return http.StatusBadRequest, errors.New("The user " + userName + " could not remove itself")
 	}
 	sessions := s.getDeviceData(deviceIPAddress, RfSessionServiceSessions, token, 2, "@odata.id")
 	if sessions != nil {
 		for _, session := range sessions {
 			if user := strings.Join(s.getDeviceData(deviceIPAddress, session, token, 1, "UserName"), " "); user == removeUser {
 				id := strings.Join(s.getDeviceData(deviceIPAddress, session, token, 1, "Id"), " ")
-				_, _, statusCode = deleteHTTPDataByRfAPI(deviceIPAddress, RfSessionServiceSessions, token, id)
+				_, statusCode, _ = deleteHTTPDataByRfAPI(deviceIPAddress, RfSessionServiceSessions, token, id)
 				if statusCode != http.StatusOK {
 					logrus.Errorf("Failed to delete login session id %s, status code %d", id, statusCode)
 					return statusCode, errors.New("Failed to delete login session id " + id)
@@ -222,7 +220,7 @@ func (s *Server) removeDeviceAccount(deviceIPAddress string, token string, remov
 			}
 		}
 	}
-	_, _, statusCode = deleteHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts, token, removeUser)
+	_, statusCode, _ = deleteHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts, token, removeUser)
 	if statusCode != http.StatusOK {
 		logrus.Errorf("Failed to delete device account %s, status code %d", removeUser, statusCode)
 		return http.StatusNotFound, errors.New("Failed to delete device account " + removeUser)
@@ -255,7 +253,7 @@ func (s *Server) setSessionService(deviceIPAddress string, token string, status 
 	ServiceInfo := map[string]interface{}{}
 	ServiceInfo["ServiceEnabled"] = status
 	ServiceInfo["SessionTimeout"] = sessionTimeout
-	_, _, _, statusCode = postHTTPDataByRfAPI(deviceIPAddress, RfSessionService, token, ServiceInfo)
+	_, _, statusCode, _ = postHTTPDataByRfAPI(deviceIPAddress, RfSessionService, token, ServiceInfo)
 	if statusCode != http.StatusOK {
 		switch statusCode {
 		case http.StatusUnauthorized:
@@ -288,7 +286,7 @@ func (s *Server) loginDevice(deviceIPAddress string, token string, loginUserName
 	userLoginInfo := map[string]interface{}{}
 	userLoginInfo["UserName"] = loginUserName
 	userLoginInfo["Password"] = loginPassword
-	response, _, _, statusCode := postHTTPDataByRfAPI(deviceIPAddress, RfSessionServiceSessions, token, userLoginInfo)
+	response, _, statusCode, _ := postHTTPDataByRfAPI(deviceIPAddress, RfSessionServiceSessions, token, userLoginInfo)
 	if statusCode != http.StatusCreated {
 		logrus.Errorf("Failed to login device, status code %d", statusCode)
 		return "", statusCode, errors.New("The user " + loginUserName + " failed to login this device " + deviceIPAddress)
@@ -336,7 +334,7 @@ func (s *Server) logoutDevice(deviceIPAddress string, token string, logoutUserNa
 		for _, session := range sessions {
 			if user := strings.Join(s.getDeviceData(deviceIPAddress, session, token, 1, "UserName"), " "); user == logoutUserName {
 				id := strings.Join(s.getDeviceData(deviceIPAddress, session, token, 1, "Id"), " ")
-				_, _, statusCode := deleteHTTPDataByRfAPI(deviceIPAddress, RfSessionServiceSessions, token, id)
+				_, statusCode, _ := deleteHTTPDataByRfAPI(deviceIPAddress, RfSessionServiceSessions, token, id)
 				if statusCode != http.StatusOK {
 					logrus.Errorf("Failed to delete login session id %s, status code %d", id, statusCode)
 					return statusCode, errors.New("Failed to delete login session id " + id)
@@ -375,7 +373,7 @@ func (s *Server) changeDeviceUserPassword(deviceIPAddress string, token string, 
 	}
 	pw := map[string]interface{}{}
 	pw["Password"] = chgPassword
-	_, _, _, statusCode := patchHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts+chgUsername, token, pw)
+	_, _, statusCode, _ := patchHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts+chgUsername, token, pw)
 	if statusCode != http.StatusOK {
 		logrus.Errorf("Failed to change device user (%s) password, status code %d", chgUsername, statusCode)
 	}

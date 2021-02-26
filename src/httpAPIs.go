@@ -1,4 +1,4 @@
-/* Edgecore DeviceManager
+/*Edgecore DeviceManager
  * Copyright 2020-2021 Edgecore Networks, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -36,7 +36,7 @@ import (
 //RfDefaultProtocol  :
 const RfDefaultProtocol = "https://"
 
-func getHTTPBodyByRfAPI(deviceIPAddress string, RfAPI string, token string) (body []byte, err error, statusCode int) {
+func getHTTPBodyByRfAPI(deviceIPAddress string, RfAPI string, token string) (body []byte, statusCode int, err error) {
 	request, _ := http.NewRequest("GET", RfDefaultProtocol+deviceIPAddress+RfAPI, nil)
 	request.Close = true
 	if token != "" {
@@ -48,35 +48,35 @@ func getHTTPBodyByRfAPI(deviceIPAddress string, RfAPI string, token string) (bod
 	}
 	if err != nil {
 		logrus.Errorf("http get Error %s", err)
-		return nil, err, http.StatusNotAcceptable
+		return nil, http.StatusNotAcceptable, err
 	}
 	body, err = ioutil.ReadAll(response.Body)
 	if err != nil {
 		logrus.Errorf("Read error %s", err)
-		return nil, err, http.StatusNoContent
+		return nil, http.StatusNoContent, err
 	}
-	return body, err, response.StatusCode
+	return body, response.StatusCode, err
 }
 
-func getHTTPBodyDataByRfAPI(deviceIPAddress string, RfAPI string, token string) (bodyData map[string]interface{}, err error, statusCode int) {
-	body, err, statusCode := getHTTPBodyByRfAPI(deviceIPAddress, RfAPI, token)
+func getHTTPBodyDataByRfAPI(deviceIPAddress string, RfAPI string, token string) (bodyData map[string]interface{}, statusCode int, err error) {
+	body, statusCode, err := getHTTPBodyByRfAPI(deviceIPAddress, RfAPI, token)
 	if err != nil {
 		logrus.Errorf("Failed to get the HTTP body %s", err)
-		return nil, err, statusCode
+		return nil, statusCode, err
 	}
 	bodyData = map[string]interface{}{}
 	err = json.Unmarshal([]byte(body), &bodyData)
 	if err != nil {
 		logrus.Errorf("ErrorUnmarshal %s", err)
-		return bodyData, err, http.StatusNoContent
+		return bodyData, http.StatusNoContent, err
 	}
-	return bodyData, err, statusCode
+	return bodyData, statusCode, err
 }
 
-func postHTTPDataByRfAPI(deviceIPAddress string, RfAPI string, token string, data map[string]interface{}) (response *http.Response, body map[string]interface{}, err error, statusCode int) {
+func postHTTPDataByRfAPI(deviceIPAddress string, RfAPI string, token string, data map[string]interface{}) (response *http.Response, body map[string]interface{}, statusCode int, err error) {
 	if data == nil {
 		logrus.Errorf("http body data error %s", err)
-		return nil, nil, err, http.StatusNoContent
+		return nil, nil, http.StatusNoContent, err
 	}
 	httpData, _ := json.Marshal(data)
 	request, _ := http.NewRequest("POST", RfDefaultProtocol+deviceIPAddress+RfAPI, bytes.NewBuffer(httpData))
@@ -87,7 +87,7 @@ func postHTTPDataByRfAPI(deviceIPAddress string, RfAPI string, token string, dat
 	response, err = http.DefaultClient.Do(request)
 	if err != nil {
 		logrus.Errorf("client post error %s", err)
-		return nil, nil, err, http.StatusNotAcceptable
+		return nil, nil, http.StatusNotAcceptable, err
 	}
 	if response != nil {
 		defer response.Body.Close()
@@ -96,18 +96,18 @@ func postHTTPDataByRfAPI(deviceIPAddress string, RfAPI string, token string, dat
 	dec := json.NewDecoder(response.Body)
 	if err = dec.Decode(&result); err != nil && err != io.EOF {
 		logrus.Errorf("ERROR while post http data :%s ", err.Error())
-		return response, nil, err, response.StatusCode
+		return response, nil, response.StatusCode, err
 	}
 	logrus.Infof("Result Decode %s", result)
 	fmt.Println(result["data"])
 	logrus.Errorf("HTTP response status:%s ", response.Status)
-	return response, result, err, response.StatusCode
+	return response, result, response.StatusCode, err
 }
 
-func patchHTTPDataByRfAPI(deviceIPAddress string, RfAPI string, token string, data map[string]interface{}) (response *http.Response, body map[string]interface{}, err error, statusCode int) {
+func patchHTTPDataByRfAPI(deviceIPAddress string, RfAPI string, token string, data map[string]interface{}) (response *http.Response, body map[string]interface{}, statusCode int, err error) {
 	if data == nil {
 		logrus.Errorf("http body data error %s", err)
-		return nil, nil, err, http.StatusNoContent
+		return nil, nil, http.StatusNoContent, err
 	}
 	httpData, _ := json.Marshal(data)
 	request, _ := http.NewRequest("PATCH", RfDefaultProtocol+deviceIPAddress+RfAPI, bytes.NewBuffer(httpData))
@@ -118,7 +118,7 @@ func patchHTTPDataByRfAPI(deviceIPAddress string, RfAPI string, token string, da
 	response, err = http.DefaultClient.Do(request)
 	if err != nil {
 		logrus.Errorf("client patch error %s", err)
-		return response, nil, err, http.StatusNotAcceptable
+		return response, nil, http.StatusNotAcceptable, err
 	}
 	if response != nil {
 		defer response.Body.Close()
@@ -127,15 +127,15 @@ func patchHTTPDataByRfAPI(deviceIPAddress string, RfAPI string, token string, da
 	dec := json.NewDecoder(response.Body)
 	if err = dec.Decode(&result); err != nil && err != io.EOF {
 		logrus.Errorf("ERROR while patch http data :%s ", err.Error())
-		return response, nil, err, response.StatusCode
+		return response, nil, response.StatusCode, err
 	}
 	logrus.Infof("Result Decode %s", result)
 	fmt.Println(result["data"])
 	logrus.Errorf("HTTP response status:%s ", response.Status)
-	return response, result, err, response.StatusCode
+	return response, result, response.StatusCode, err
 }
 
-func deleteHTTPDataByRfAPI(deviceIPAddress string, RfAPI string, token string, data string) (response *http.Response, err error, statusCode int) {
+func deleteHTTPDataByRfAPI(deviceIPAddress string, RfAPI string, token string, data string) (response *http.Response, statusCode int, err error) {
 	if len(RfAPI) != 0 {
 		lastByte := RfAPI[len(RfAPI)-1:]
 		if lastByte != "/" {
@@ -155,11 +155,11 @@ func deleteHTTPDataByRfAPI(deviceIPAddress string, RfAPI string, token string, d
 	if err != nil {
 		logrus.Errorf("Error Default Client %s", err)
 	}
-	return response, err, response.StatusCode
+	return response, response.StatusCode, err
 }
 
 func (s *Server) getDeviceData(deviceIPAddress string, RfAPI string, token string, levelPos uint, keyword string) (retData []string) {
-	deviceData, err, statusCode := getHTTPBodyDataByRfAPI(deviceIPAddress, RfAPI, token)
+	deviceData, statusCode, err := getHTTPBodyDataByRfAPI(deviceIPAddress, RfAPI, token)
 	if err != nil {
 		logrus.Errorf("Failed to get device data %s status code %d", err, statusCode)
 		return nil
@@ -181,25 +181,25 @@ func getDeviceDataByMethod(deviceIPAddress string, RfAPI string, token string, h
 	var httpData map[string]interface{}
 	switch httpMethod {
 	case "GET":
-		httpData, _, statusCode = getHTTPBodyDataByRfAPI(deviceIPAddress, RfAPI, token)
+		httpData, statusCode, _ = getHTTPBodyDataByRfAPI(deviceIPAddress, RfAPI, token)
 		if statusCode != http.StatusOK {
 			logrus.Errorf("Failed to get device data, status code %d", statusCode)
 			return statusCode, httpData, errors.New("Failed to get device data")
 		}
 	case "POST":
-		_, httpData, _, statusCode = postHTTPDataByRfAPI(deviceIPAddress, RfAPI, token, httpPostData)
+		_, httpData, statusCode, _ = postHTTPDataByRfAPI(deviceIPAddress, RfAPI, token, httpPostData)
 		if statusCode != http.StatusOK && statusCode != http.StatusCreated {
 			logrus.Errorf("Failed to post data to device, status code %d", statusCode)
 			return statusCode, httpData, errors.New("Failed to post data to device")
 		}
 	case "DELETE":
-		_, _, statusCode = deleteHTTPDataByRfAPI(deviceIPAddress, RfAPI, token, httpDeleteData)
+		_, statusCode, _ = deleteHTTPDataByRfAPI(deviceIPAddress, RfAPI, token, httpDeleteData)
 		if statusCode != http.StatusOK {
 			logrus.Errorf("Failed to delete device data, status code %d, delete data %s", statusCode, httpDeleteData)
 			return statusCode, httpData, errors.New("Failed to delete device data")
 		}
 	case "PATCH":
-		_, httpData, _, statusCode = patchHTTPDataByRfAPI(deviceIPAddress, RfAPI, token, httpPatchData)
+		_, httpData, statusCode, _ = patchHTTPDataByRfAPI(deviceIPAddress, RfAPI, token, httpPatchData)
 		if statusCode != http.StatusOK {
 			logrus.Errorf("Failed to patch device data, status code %d, delete data %s", statusCode, httpPatchData)
 			return statusCode, httpData, errors.New("Failed to patch device data")
