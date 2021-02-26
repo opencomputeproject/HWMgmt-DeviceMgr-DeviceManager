@@ -95,7 +95,7 @@ kube-system   tiller-deploy-66478cb847-4l5fv           1/1     Running   0      
 
 ## Install Go/Protobuf package
 
-# Go package Installation
+## Go package Installation
 The go command will use in building the Device Manager source codes.
 ```shell
 make go-install
@@ -104,7 +104,7 @@ Take effect Go environment variables
 . ~/.bashrc
 ```
 
-# Protobuf package installation and download the necessary GO libraries.
+## Protobuf package installation and download the necessary GO libraries.
 The protoc command will use in building the .proto file.
 ```shell
 make prereq
