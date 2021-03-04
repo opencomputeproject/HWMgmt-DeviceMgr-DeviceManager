@@ -50,7 +50,8 @@ Before you use the Device Manager, you have to install the PSME software to the 
 More detailed information can be found at [DM-Redfish-PSME](https://github.com/opencomputeproject/DM-Redfish-PSME) and [DM-Redfish-OpenBMC](https://github.com/opencomputeproject/DM-Redfish-OpenBMC).
 
 # Preparation
-The host system need to install necessory packages (ex: git, curl and docker)
+The Device Manager supports running the *Ubuntu Desktop version*. And the hardware platform needs to match the minimum requirement, 
+such as *CPU 2 cores/Memory 4GB and SSD driver 40GB*. The host system need to install necessory packages (ex: git, curl and docker)
 
 ```shell
 sudo apt update
@@ -212,5 +213,5 @@ For running 'dm', please make and launch 'demotest' first.
 # Reset k8s environment
 The command is removing all pods and helm chart.
 ```shell
-make make reset-pods
+make reset-pods
 ```
