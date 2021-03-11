@@ -1,0 +1,249 @@
+// Edgecore DeviceManager
+// Copyright 2020-2021 Edgecore Networks, Inc.
+//
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements. See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership. The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License. You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+syntax = "proto3";
+
+package importer;
+option go_package = "proto;importer";
+
+import "google/protobuf/empty.proto";
+//import "google/api/annotations.proto";
+
+message DeviceAccount {
+	string IpAddress = 1;
+	string actUsername = 2;
+	string actPassword = 3;
+	string userToken = 4;
+	string privilege = 5;
+	bool sessionEnabled = 6;
+	fixed64 sessionTimeout = 7;
+	string httptoken = 8;
+}
+
+message DeviceAccountList {
+	map<string, string> account = 1;
+}
+
+message DeviceInfo {
+	string ip_address = 1;
+	uint32 frequency = 2;
+	bool detectDevice = 3;
+}
+
+message GivenEventList {
+	string event_ip_address = 1;
+	string userToken = 2;
+	repeated string events = 3;
+	string eventServerAddr = 4;
+	string eventServerPort = 5;
+}
+
+message EventList {
+	repeated string events = 1;
+}
+
+message FreqInfo {
+	string IpAddress = 1;
+	string userToken = 2;
+	uint32 Frequency = 3;
+}
+
+message HttpData {
+	string resultData = 1;
+}
+
+message HttpPostData {
+	map<string, string> postData = 1;
+}
+
+message HttpPatchData {
+	map<string, string> patchData = 1;
+}
+
+message HttpInfo {
+	string httpMethod = 1;
+	HttpPostData httpPostData = 2;
+	string httpDeleteData = 3;
+	HttpPatchData httpPatchData = 4;
+	bool accessFromFile = 5;
+}
+
+message LogService {
+	string IpAddress = 1;
+	string userToken = 2;
+	bool logServiceEnabled = 3;
+	repeated string logData = 4;
+	uint64 begin = 5;
+	uint64 end =6;
+}
+
+message SoftwareUpdate {
+	string IpAddress = 1;
+	string userToken = 2;
+	string softwareDownloadType = 3;
+	string softwareDownloadURI = 4;
+}
+
+message RfAPIList {
+	repeated string rfAPIList = 1;
+}
+
+message PollingRfAPI {
+	string IpAddress = 1;
+	string userToken = 2;
+	string rfAPI = 3;
+}
+
+message Device {
+	string IpAddress = 1;
+	string RedfishAPI = 2;
+	DeviceAccount deviceAccount = 3;
+	HttpInfo httpInfo = 4;
+	string userToken = 5;
+}
+
+message DeviceData {
+	repeated string deviceData = 1;
+}
+
+message GrubBootData {
+	repeated string bootData = 1;
+	string defaultBoot = 2;
+}
+
+message SystemBoot {
+	string IpAddress = 1;
+	string userToken = 2;
+	string defaultBoot = 3;
+	string resetType = 4;
+	string bootSourceOverrideEnabled = 5;
+	string bootSourceOverrideTarget = 6;
+	repeated string supportedResetType = 7;
+}
+
+message DeviceTemperatureList {
+	map<string, string> temperatures = 1;
+}
+
+message DeviceTemperature {
+	string IpAddress = 1;
+	string userToken = 2;
+	string memberID = 3;
+	uint32 upperThresholdNonCritical = 4;
+	uint32 lowerThresholdNonCritical = 5;
+	repeated string tempData = 6;
+}
+
+message DeviceCPUUsage {
+	string IpAddress = 1;
+	string userToken = 2;
+	uint32 upperThresholdNonCritical = 3;
+}
+
+message DeviceMemoryUsage {
+	string IpAddress = 1;
+	string userToken = 2;
+	uint32 lowerThresholdNonCritical = 3;
+}
+
+message DeviceStorageUsage {
+	string IpAddress = 1;
+	string userToken = 2;
+	uint32 upperThresholdNonCritical = 3;
+}
+
+message RedfishInfo {
+	string IpAddress = 1;
+	string userToken = 2;
+	string redfishModel = 3;
+	repeated string CPUUsage = 4;
+	repeated string memoryUsage = 5;
+	repeated string storageUsage = 6;
+	string openBmcIpAddress = 7;
+}
+
+message EthernetData {
+	string IpAddress = 1;
+	string userToken = 2;
+	uint32 poEPort = 3;
+	bool enabled = 4;
+	repeated string poEEthernetData = 5;
+	repeated string poEPortData = 6;
+}
+
+message Empty {}
+
+message DeviceList {
+	repeated DeviceInfo device = 1;
+}
+
+message DeviceListByIp {
+	repeated string IpAddress = 1;
+}
+
+service device_management {
+	rpc SendDeviceList(DeviceList) returns (google.protobuf.Empty) {}
+	rpc DeleteDeviceList(Device) returns (google.protobuf.Empty) {}
+	rpc SetFrequency(FreqInfo) returns (google.protobuf.Empty) {}
+	rpc GetEventList(Device) returns (EventList) {}
+	rpc SubscribeGivenEvents(GivenEventList)  returns (google.protobuf.Empty) {}
+	rpc UnsubscribeGivenEvents(GivenEventList) returns (google.protobuf.Empty) {}
+	rpc GetCurrentEventList(Device) returns (EventList) {}
+	rpc ClearCurrentEventList(Device) returns (google.protobuf.Empty) {}
+	rpc GetCurrentDevices(Empty) returns (DeviceListByIp) {}
+	rpc CreateDeviceAccount(DeviceAccount) returns (google.protobuf.Empty) {}
+	rpc RemoveDeviceAccount(DeviceAccount) returns (google.protobuf.Empty) {}
+	rpc ChangeDeviceUserPassword(DeviceAccount) returns (google.protobuf.Empty) {}
+	rpc LoginDevice(DeviceAccount) returns (DeviceAccount) {}
+	rpc LogoutDevice(DeviceAccount) returns (google.protobuf.Empty) {}
+	rpc StartQueryDeviceData(DeviceAccount) returns (google.protobuf.Empty) {}
+	rpc StopQueryDeviceData(DeviceAccount) returns (google.protobuf.Empty) {}
+	rpc ListDeviceAccounts(DeviceAccount) returns (DeviceAccountList) {}
+	rpc SetSessionService(DeviceAccount) returns (google.protobuf.Empty) {}
+	rpc EnableLogServiceState(LogService) returns (google.protobuf.Empty) {}
+	rpc ResetDeviceLogData(LogService) returns (google.protobuf.Empty) {}
+	rpc GetDeviceLogData(LogService) returns (LogService) {}
+	rpc SendDeviceSoftwareDownloadURI(SoftwareUpdate) returns (google.protobuf.Empty) {}
+	rpc GetDeviceData(Device) returns (DeviceData) {}
+	rpc GenericDeviceAccess(Device) returns (HttpData) {}
+	rpc AddPollingRfAPI(PollingRfAPI) returns (google.protobuf.Empty) {}
+	rpc RemovePollingRfAPI(PollingRfAPI) returns (google.protobuf.Empty) {}
+	rpc GetRfAPIList(PollingRfAPI) returns (RfAPIList) {}
+	rpc GetDeviceBootData(SystemBoot) returns (GrubBootData) {}
+	rpc GetDeviceDefaultBoot(SystemBoot) returns (GrubBootData) {}
+	rpc SetDeviceDefaultBoot(SystemBoot) returns (google.protobuf.Empty) {}
+	rpc GetDeviceSupportedResetType(SystemBoot) returns (SystemBoot) {}
+	rpc ResetDeviceSystem(SystemBoot) returns (google.protobuf.Empty) {}
+	rpc ConfigureBootSource(SystemBoot) returns (google.protobuf.Empty) {}
+	rpc GetDeviceTemperatures(DeviceTemperature) returns (DeviceTemperature) {}
+	rpc SetDeviceTemperatureForEvent(DeviceTemperature) returns (google.protobuf.Empty) {}
+	rpc GetRedfishModel(RedfishInfo) returns (RedfishInfo) {}
+	rpc GetOpenBmcDeviceIP(RedfishInfo) returns (RedfishInfo) {}
+	rpc GetCPUUsage(RedfishInfo) returns (RedfishInfo) {}
+	rpc SetCPUUsageForEvent(DeviceCPUUsage) returns (google.protobuf.Empty) {}
+	rpc GetMemoryUsage(RedfishInfo) returns (RedfishInfo) {}
+	rpc SetMemoryUsageForEvent(DeviceMemoryUsage) returns (google.protobuf.Empty) {}
+	rpc GetStorageUsage(RedfishInfo) returns (RedfishInfo) {}
+	rpc SetStorageUsageForEvent(DeviceStorageUsage) returns (google.protobuf.Empty) {}
+	rpc GetPoESystemStats(EthernetData) returns (EthernetData) {}
+	rpc GetPoEPortStats(EthernetData) returns (EthernetData) {}
+	rpc SetPoESystemStats(EthernetData) returns (google.protobuf.Empty) {}
+	rpc SetPoEPortStats(EthernetData) returns (google.protobuf.Empty) {}
+}
