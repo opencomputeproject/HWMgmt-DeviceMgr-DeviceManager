@@ -226,11 +226,12 @@ src/proto/importer.pb.go: src/proto/importer.proto
 	--go_out=plugins=grpc:. \
 	proto/importer.proto
 
-apps/main:
+device-manager-binary:
+	@echo "Building Device Manager Binary ..."
 	@cd src; \
 	GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o ../apps/main .
 
-build-dm: src/proto/importer.pb.go apps/main
+build-dm: src/proto/importer.pb.go device-manager-binary
 	docker build $(DOCKER_BUILD_ARGS) \
 	-t ${DOCKER_IMAGENAME} \
 	--build-arg org_label_schema_version="${VERSION}" \

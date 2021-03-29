@@ -65,11 +65,13 @@ such as *CPU 2 cores/Memory 4GB and SSD driver 40GB*. The host system need to in
 The device management based on the k8s environment to corprate with others PODs (ex: core-kafka-0).
 
 ```shell
-#> make install-docker       #After this command, you need to logout/reboot the host system to take effect on the running system
+#> make install-docker       #After this command, you need to logout/reboot the host system to
+                              take effect on the running system
 ```
 
 ```shell
-#> make k8s      #Before this command, you need to add the "nameserver" variable (ex: nameserver 8.8.8.8) to "/etc/resolv.conf"
+#> make k8s      #Before this command, you need to add the "nameserver"
+                  variable (ex: nameserver 8.8.8.8) to "/etc/resolv.conf"
 ```
 
 Optionally, To avoid conflicting the Calic IP to the "docker0" and host subnets. You could this option to point Calic IP subnet.
@@ -133,12 +135,13 @@ Bring up the Device Persistent Volume first (Default: /var/devices_data) . The d
 ```
 
 Displaying the device persisent volume status
-```text
+```shell
 #> helm ls
+```
 NAME            REVISION        UPDATED                         STATUS          CHART                           APP VERSION     NAMESPACE
 cord-kafka      1               Wed Nov 11 18:28:40 2020        DEPLOYED        kafka-0.13.3                    5.0.1           default
 devices-pv      1               Wed Nov 11 20:47:46 2020        DEPLOYED        local-directory-0.1.0-dev0                      default
-```
+
 
 Bring up the Device-management Pod
 ```shell
@@ -195,16 +198,20 @@ INFO[09-09-2020 14:51:00] Starting topicListener for importer
 ```
 # Test physical devices
 The automation test needs two physical devices to perform the test cases that include getting device data and functionalities.
+
 ## Automation Test
 Test cases utilizing 'dm' provided in the functional_test/ sub-directory. The test results will save a tarball file and locates in the "results" directory. They can execute those test cases through Makefile
 ```shell
 #> cd demo_test/functional_test
-#> make test IP1=<ip of 1st device> PORT1=<RF port of 1st device> IP2=<ip of 2nd device> PORT2=<RF port of 2nd device> USER1=<user of 1st device> PWD1=<password of 1st device> USER2=<user of 2nd device> PWD2=<password of 2nd device>
+#> make test IP1=<ip of 1st device> PORT1=<RF port of 1st device> IP2=<ip of 2nd device> PORT2=<RF port of 2nd device>
+             USER1=<user of 1st device> PWD1=<password of 1st device> USER2=<user of 2nd device> PWD2=<password of 2nd device>
 ```
 The test case could specific by the "TESTSDIR" option (for exmaple: tests/account_service)
 ```shell
 #> cd demo_test/functional_test
-#> make test IP1=<ip of 1st device> PORT1=<RF port of 1st device> IP2=<ip of 2nd device> PORT2=<RF port of 2nd device> USER1=<user of 1st device> PWD1=<password of 1st device> USER2=<user of 2nd device> PWD2=<password of 2nd device> TESTSDIR=<test case directory>
+#> make test IP1=<ip of 1st device> PORT1=<RF port of 1st device> IP2=<ip of 2nd device> PORT2=<RF port of 2nd device>
+             USER1=<user of 1st device> PWD1=<password of 1st device> USER2=<user of 2nd device> PWD2=<password of 2nd device>
+             TESTSDIR=<test case directory>
 ```
 ## Manual testing at command line
 The 'dm' test tool needs to build at the command line the following by
@@ -213,7 +220,7 @@ The 'dm' test tool needs to build at the command line the following by
 #> make
 ```
 For running 'dm', please make and launch 'demotest' first.
-If you want to know the deployment information, please read the 'demo_test/functional_test/README'
+If you want to know the user manual, please read the 'demo_test/functional_test/README'
 
 # Reset k8s environment
 The command is removing all pods and helm chart.

@@ -37,9 +37,6 @@ configurationOverrides:
 # libraries have been updated to use the newer v1 message format that add the
 # timestamp to the message.
 #
-# The `afkak` client in VOLTHA uses the outdated format, and reports -1 as the
-# timestamp.
-#
 # More context:
 #  https://cwiki.apache.org/confluence/display/KAFKA/KIP-32+-+Add+timestamps+to+Kafka+message
 #

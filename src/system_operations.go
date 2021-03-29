@@ -89,7 +89,6 @@ func (s *Server) getDeviceTemperature(deviceIPAddress string, token string) (ret
 			mapData["UpperThresholdCritical"] = dataStr1
 			okValue = okValue | 0x10
 		}
-		//if id == 0 || id == 255 {
 		if (okValue&0x20 == 0) && dataStr == "UpperThresholdFatal" {
 			mapData["UpperThresholdFatal"] = dataStr1
 			okValue = okValue | 0x20
