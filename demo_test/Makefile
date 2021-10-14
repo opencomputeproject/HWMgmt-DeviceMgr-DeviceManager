@@ -20,6 +20,7 @@
 
 LOCAL_DIR=/usr/local
 GO_DIR=${LOCAL_DIR}/go
+GO_BIN_PATH=/usr/local/go/bin
 
 go-install:
 	cd .. && make go-install
@@ -28,7 +29,7 @@ prereq:
 	cd .. && make prereq
 
 demotest: proto/importer.pb.go
-	GO111MODULE=on go build -mod=vendor -i -v -o $@
+	@GOROOT=${GO_DIR} GOPATH=$(HOME)/app GO111MODULE=on ${GO_BIN_PATH}/go build -mod=vendor -i -v -o $@
 
 proto/importer.pb.go: proto/importer.proto
 	cd .. && make src/proto/importer.pb.go

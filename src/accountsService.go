@@ -46,7 +46,7 @@ const RfSessionServiceSessions = "/redfish/v1/SessionService/Sessions/"
 const RfSessionTimeOut = 300
 
 //UserPrivileges :
-var UserPrivileges = []string{"Administrator", "Operator", "ReadOnlyUser"}
+var UserPrivileges = []string{"Administrator", "Operator", "ReadOnly"}
 
 //UserNameMaxLength :
 const UserNameMaxLength = 256

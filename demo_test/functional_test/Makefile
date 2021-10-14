@@ -22,6 +22,7 @@ SHELL = /bin/bash
 PWD=$(shell pwd)
 VERSION=$(shell cat ../../VERSION)
 DEMOTESTDIR = ..
+GO_BIN_PATH=/usr/local/go/bin
 DEMOTESTLOG = demotest.log
 TESTSDIR := tests
 TESTTAG = tc
@@ -65,7 +66,7 @@ demotest:
 	@[ -z ${TERM} ] && : || tput clear
 
 dm: test_cli.go
-	go build -i -v -o $@
+	${GO_BIN_PATH}/go build -i -v -o $@
 
 detect:
 	@$(eval $(call DETECT,${IP1},${PORT1},${USER1},${PWD1}))

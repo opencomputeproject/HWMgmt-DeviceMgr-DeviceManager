@@ -30,8 +30,9 @@ images:
     pullPolicy: 'Always'
 
 device_management_grpcPort: 31085
+device_management_httpPort: 32033
 device_management_replicas: 1
-device_management_pv_mount: '/devices_data'
+device_management_pv_mount: '/var/devices_data'
 
 # persistence related vars
 needPersistence: true 

@@ -43,13 +43,4 @@ spec:
   storageClassName: {{ $.Values.storageClassName }}
   hostPath:
     path: {{ $volume.directory }}
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-            - key: kubernetes.io/hostname
-              operator: In
-              values:
-              - {{ $volume.host }}
 {{- end }}

@@ -20,7 +20,7 @@
 # under the License.
 #
 
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: device-management
@@ -28,22 +28,25 @@ metadata:
     release: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.device_management_replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: device-management
+        app: {{ .Release.Name }}
         release: {{ .Release.Name }}
     spec:
       containers:
-        - name: device-management
+        - name: {{ .Release.Name }}
           image:  "{{ .Values.global.registry }}{{ .Values.images.device_management.repository }}:{{ tpl .Values.images.device_management.tag . }}"
           imagePullPolicy: "{{ .Values.images.device_management.pullPolicy }}"
           ports:
-            - containerPort: 8080
-              port: 8080
+            - name: dm-port-8080
+              containerPort: 8080
               protocol: TCP
-            - containerPort: 50051
-              port: 50051
+            - name: dm-port-50051
+              containerPort: 50051
               protocol: TCP
           env:
 {{- if .Values.needPersistence }}

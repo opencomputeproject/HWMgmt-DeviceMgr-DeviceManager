@@ -19,7 +19,7 @@
 // under the License.
 ip1:port1 attached
 ip1:port1 set ok!
-The session service was enabled on device ip1:port1. Please login device first and assige the token.
+The session service was enabled on device 172.17.8.40:8888. The Status Code is 405
 The seesion timeout has to over 300
 ip1:port1 set ok!
 The user account admin is not available in device

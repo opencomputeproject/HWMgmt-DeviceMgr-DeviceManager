@@ -20,8 +20,8 @@
 ip1:port1 attached
 ip1:port1 set ok!
 admin_1 created
-{"@odata.context":"/redfish/v1/$metadata#ManagerAccount.ManagerAccount","@odata.id":"/redfish/v1/AccountService/Accounts/admin_1","@odata.type":"#ManagerAccount.v1_0_0.ManagerAccount","Description":null,"Enabled":true,"Id":"admin_1","Links":{"Role":{"@odata.id":"/redfish/v1/AccountService/Roles/1"}},"Locked":false,"Name":"Account Service","Password":null,"RoleId":"Administrator","UserName":"admin_1"}
+{"@odata.context":"/redfish/v1/$metadata#ManagerAccount.ManagerAccount","@odata.id":"/redfish/v1/AccountService/Accounts/admin_1","@odata.type":"#ManagerAccount.v1_0_0.ManagerAccount","Description":"User Account","Enabled":true,"Id":"admin_1","Links":{"Role":{"@odata.id":"/redfish/v1/AccountService/Roles/Administrator"}},"Locked":false,"Name":"User Account","Password":null,"RoleId":"Administrator","UserName":"admin_1"}
 {}
-{"@odata.context":"/redfish/v1/$metadata#ManagerAccount.ManagerAccount","@odata.id":"/redfish/v1/AccountService/Accounts/admin_1","@odata.type":"#ManagerAccount.v1_0_0.ManagerAccount","Description":null,"Enabled":true,"Id":"admin_1","Links":{"Role":{"@odata.id":"/redfish/v1/AccountService/Roles/1"}},"Locked":false,"Name":"Account Service","Password":null,"RoleId":"Administrator","UserName":"admin_1"}
+{"@odata.context":"/redfish/v1/$metadata#ManagerAccount.ManagerAccount","@odata.id":"/redfish/v1/AccountService/Accounts/admin_1","@odata.type":"#ManagerAccount.v1_0_0.ManagerAccount","Description":"User Account","Enabled":true,"Id":"admin_1","Links":{"Role":{"@odata.id":"/redfish/v1/AccountService/Roles/Administrator"}},"Locked":false,"Name":"User Account","Password":null,"RoleId":"Administrator","UserName":"admin_1"}
 admin_1 deleted
 ip1:port1 detached

@@ -27,7 +27,7 @@ account_data=`./dm deviceaccountslist $1:$2:$admin_token|sed 's/\( \)*/\1/g'`
 echo $account_data
 ./dm createaccount $1:$2:$admin_token:admin_1:admin_1:Administrator
 ./dm createaccount $1:$2:$admin_token:operator:operator:Operator
-./dm createaccount $1:$2:$admin_token:readonly:readonly:ReadOnlyUser
+./dm createaccount $1:$2:$admin_token:readonly:readonly:ReadOnly
 admin_1_token=`./dm logindevice $1:$2:admin_1:admin_1| cut -d' ' -f4`
 operator_token=`./dm logindevice $1:$2:operator:operator| cut -d' ' -f4`
 readonly_token=`./dm logindevice $1:$2:readonly:readonly| cut -d' ' -f4`

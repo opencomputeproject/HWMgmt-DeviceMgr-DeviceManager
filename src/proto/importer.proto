@@ -21,7 +21,7 @@
 syntax = "proto3";
 
 package importer;
-option go_package = "proto;importer";
+option go_package = "./proto;importer";
 
 import "google/protobuf/empty.proto";
 //import "google/api/annotations.proto";

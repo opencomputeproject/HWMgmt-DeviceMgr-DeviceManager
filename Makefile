@@ -41,22 +41,23 @@ DOCKER_LABEL_COMMIT_DATE ?= $(shell git diff-index --quiet HEAD -- && git show -
 DOCKER_LABEL_BUILD_DATE  ?= $(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
 
 WORKSPACE       ?= $(shell pwd)
-DOCKER_VERSION  ?= "17.06"
-K8S_VERSION     ?= "1.12.7"
-CNI_VERSION     ?= "0.7.5-00"
-HELM_VERSION    ?= "2.14.2"
-HELM_PLATFORM   ?= "linux-amd64"
-HELM_SHA256SUM  ?= "9f50e69cf5cfa7268b28686728ad0227507a169e52bf59c99ada872ddd9679f0"
+DOCKER_VERSION  ?= "5:20.10.6"
+K8S_VERSION     ?= "1.21.0"
+CNI_VERSION     ?= "0.8.7-00"
+HELM_VERSION    ?= "v3.5.4"
 CALICO_IPAM ?= 192.168.0.0/16
-KAFKA_CHART_VERSION  ?= 0.13.3
-HELM_GLOBAL_ARGS ?=
+KAFKA_CHART_VERSION  ?= 0.21.5
 LOCAL_DIR=/usr/local
 GO_DIR=${LOCAL_DIR}/go
-PB_REL=https://github.com/protocolbuffers/protobuf/releases
-GRPC_GATEWAY_VERSION=1.16.0
+GO_BIN_PATH=/usr/local/go/bin
 PROTOC_VERSION=3.7.0
 PROTOC_SHA256SUM=a1b8ed22d6dc53c5b8680a6f1760a305b33ef471bece482e92728f00ba2a2969
 DEVICE_DIR=/var/devices_data
+CHART_STATUS = $(shell \
+if [ ! -z "`which helm`" -a ! -z "`netstat -ntal|grep LISTEN|grep :6443`" ]; then \
+helm ls -q -l name=$1; \
+fi \
+)
 
 help:
 	@echo "Usage: make [<target>]"
@@ -83,7 +84,7 @@ help:
 	@echo
 
 all: test
-k8s: /usr/bin/kubeadm kubeadm /usr/local/bin/helm helm kafka
+k8s: restart-docker resolv-file /usr/bin/kubeadm kubeadm /usr/local/bin/helm helm kafka
 
 go-install:
 	wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz 
@@ -101,11 +102,10 @@ go-install:
 	@echo ". $(HOME)/.bashrc"
 
 prereq: /usr/local/bin/protoc
-	go get -v google.golang.org/grpc
-	go get -v github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-	go get -v github.com/golang/protobuf/protoc-gen-go
-	go get github.com/sirupsen/logrus
-	go get github.com/Shopify/sarama
+	GOROOT=${GO_DIR} GOPATH=$(HOME)/app ${GO_BIN_PATH}/go get -v google.golang.org/grpc
+	GOROOT=${GO_DIR} GOPATH=$(HOME)/app ${GO_BIN_PATH}/go get -v github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	GOROOT=${GO_DIR} GOPATH=$(HOME)/app ${GO_BIN_PATH}/go get -v github.com/golang/protobuf/protoc-gen-go
+	GOROOT=${GO_DIR} GOPATH=$(HOME)/app ${GO_BIN_PATH}/go get github.com/sirupsen/logrus
 
 /usr/local/bin/protoc:
 	curl -L -o /tmp/protoc-${PROTOC_VERSION}-linux-x86_64.zip \
@@ -123,6 +123,7 @@ install-docker:
 	sudo apt update
 	sudo apt install -y "docker-ce=${DOCKER_VERSION}*"
 	sudo usermod -aG docker $(shell whoami)
+	sudo chmod 777 /var/run/docker.sock
 
 /usr/bin/kubeadm:
 	curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
@@ -138,7 +139,7 @@ kubeadm:
 	mkdir -p $(HOME)/.kube
 	sudo cp -f /etc/kubernetes/admin.conf $(HOME)/.kube/config
 	sudo chown $(shell id -u):$(shell id -g) $(HOME)/.kube/config
-	@wget https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+	@wget --no-check-certificate https://docs.projectcalico.org/v3.10/manifests/calico.yaml
 	@sed -i '/CALICO_IPV4POOL_CIDR/!b;n;c\ $(shell printf %12s)\ value: \"${CALICO_IPAM}\"' calico.yaml
 	kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
 	kubectl apply -f ./calico.yaml
@@ -146,92 +147,101 @@ kubeadm:
 	@rm -f calico.yaml
 
 /usr/local/bin/helm:
-	curl -L -o /tmp/helm.tgz "https://storage.googleapis.com/kubernetes-helm/helm-v${HELM_VERSION}-${HELM_PLATFORM}.tar.gz"
-	echo "${HELM_SHA256SUM}  /tmp/helm.tgz" | sha256sum -c -
-	cd /tmp; tar -xzvf helm.tgz; sudo mv ${HELM_PLATFORM}/helm /usr/local/bin/helm
-	sudo chmod a+x /usr/local/bin/helm
-	@rm -rf /tmp/helm.tgz /tmp/${HELM_PLATFORM}
+	wget https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+	@chmod +x get-helm-3
+	./get-helm-3 --version ${HELM_VERSION}
+	@rm -f get-helm-3
 
 helm:
-	helm init --client-only --skip-refresh
-	kubectl create serviceaccount --namespace kube-system tiller
-	kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-	helm init --service-account tiller
-	until helm ls >& /dev/null; \
-	do \
-		echo "Waiting for Helm to be ready"; \
-		sleep 5; \
-	done
-	helm repo add stable https://charts.helm.sh/stable
-	helm repo add incubator https://charts.helm.sh/incubator
-	helm repo add cord https://charts.opencord.org
+	helm repo add stable https://charts.helm.sh/stable --force-update
+	helm repo add incubator https://charts.helm.sh/incubator --force-update
+	helm repo add cord https://charts.opencord.org --force-update
 	helm repo update
 
 kafka:
 	cd $(WORKSPACE)/helm-charts && \
-	helm upgrade --install $(HELM_GLOBAL_ARGS) cord-kafka --version $(KAFKA_CHART_VERSION) -f kafka/kafka-single.yaml incubator/kafka
+	helm upgrade --version $(KAFKA_CHART_VERSION) --install --create-namespace -f kafka/kafka-single.yaml cord-kafka incubator/kafka
+	@until kubectl get pods | grep zookeeper | grep "Running" >& /dev/null; \
+	do \
+		echo "Waiting for Zookeeper to be ready"; \
+		sleep 5; \
+	done
+	@until kubectl get pods | grep cord-kafka-0 | grep "Running" >& /dev/null; \
+	do \
+		echo "Waiting for Kafka to be ready"; \
+		sleep 5; \
+	done
 
-dm:
+dm: dpv
+ifeq (,$(call CHART_STATUS,"device-management"))
 	cd $(WORKSPACE)/helm-charts && \
-	helm install -n device-management device-management --set images.device_management.pullPolicy='IfNotPresent' --set images.device_management.tag=${VERSION}
+	helm upgrade --install --create-namespace --set images.device_management.pullPolicy='IfNotPresent' --set images.device_management.tag=${VERSION} device-management device-management
 	@echo -n "Waiting for loading Device-Manager... "
-	@until kubectl get pods --all-namespaces | grep device-management- | awk -F" " '{print $4}' | grep "Running" >& /dev/null; \
+	@until kubectl get pods | grep device-management- | awk -F" " '{print $3}' | grep "Running" >& /dev/null; \
 	do \
 		sleep 2; \
 	done
 	@echo "Done"
+endif
 
-clean-dm:
-	@helm del --purge device-management
+clean-dm: clean-dpv
+ifneq (,$(call CHART_STATUS,"device-management"))
+	@helm uninstall device-management
 	@echo -n "Waiting for unloading Device-Manager... "
-	@until ! kubectl get pods --all-namespaces | grep device-management- | awk -F" " '{print $4}' >& /dev/null; \
+	@until ! kubectl get pods | grep device-management- | awk -F" " '{print $3}' >& /dev/null; \
 	do \
 		sleep 2; \
 	done
 	@echo "Done"
+endif
 
 dpv:
+ifeq (,$(call CHART_STATUS,"devices-pv"))
 ifeq "$(wildcard $(DEVICE_DIR))" ""
 	sudo mkdir -p $(DEVICE_DIR)
 endif
 	@cd $(WORKSPACE)/helm-charts/storage && \
-	helm install -n devices-pv ./local-directory
+	helm install devices-pv ./local-directory
 	@echo -n "Waiting for loading device persistent volume... "
-	@until helm ls | grep devices-pv >& /dev/null; \
+	@until helm ls -q | grep devices-pv >& /dev/null; \
 	do \
 		sleep 2; \
 	done
 	@echo "Done"
+endif
 
 clean-dpv:
+ifneq (,$(call CHART_STATUS,"devices-pv"))
 	sudo rm -rf $(DEVICE_DIR)
-	@helm del --purge devices-pv
+	@helm uninstall devices-pv
 	@echo -n "Waiting for unloading device persistent volume... "
-	@until ! helm ls | grep devices-pv >& /dev/null; \
+	@until ! helm ls -q | grep devices-pv >& /dev/null; \
 	do \
 		sleep 2; \
 	done
 	@echo "Done"
+endif
 
-reset-pods:
+clean: clean-dm clean-dpv
+
+reset-pods: /usr/bin/kubeadm clean-dm clean-dpv
 	sudo kubeadm reset -f || true
 	sudo iptables -F && sudo iptables -t nat -F && sudo iptables -t mangle -F && sudo iptables -X
-	sudo rm -f /var/lib/cni/networks/pon*/* || true
-	sudo rm -f /var/lib/cni/networks/nni*/* || true
-	sudo rm -f /var/lib/cni/networks/k8s-pod-network/* || true
+	make restart-docker
 
 src/proto/importer.pb.go: src/proto/importer.proto
 	@cd src; \
-	protoc --proto_path=proto \
+	GOROOT=${GO_DIR} GOPATH=$(HOME)/app PATH=$(PATH):$(HOME)/app/bin protoc --proto_path=proto \
 	--go_out=plugins=grpc:. \
 	proto/importer.proto
 
 device-manager-binary:
 	@echo "Building Device Manager Binary ..."
 	@cd src; \
-	GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o ../apps/main .
+	GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOROOT=${GO_DIR} GOPATH=$(HOME)/app ${GO_BIN_PATH}/go build -mod=vendor -o ../apps/main .
 
-build-dm: src/proto/importer.pb.go device-manager-binary
+
+build-dm: resolv-file src/proto/importer.pb.go device-manager-binary
 	docker build $(DOCKER_BUILD_ARGS) \
 	-t ${DOCKER_IMAGENAME} \
 	--build-arg org_label_schema_version="${VERSION}" \
@@ -243,6 +253,16 @@ build-dm: src/proto/importer.pb.go device-manager-binary
 
 status:
 	kubectl get pods --all-namespaces
+
+resolv-file:
+	@chk_nameserver="$(shell cat /etc/resolv.conf | grep 'nameserver 8.8.8.8')"; \
+	if [ -z "$$chk_nameserver" ]; then \
+		sudo sh -c "echo nameserver 8.8.8.8 > /etc/resolv.conf"; \
+	fi
+
+restart-docker:
+	sudo systemctl restart docker
+	sudo chmod 777 /var/run/docker.sock
 
 PATH:=$(GOPATH)/bin:$(PATH)
 HADOLINT=$(shell PATH=$(GOPATH):$(PATH) which hadolint)
