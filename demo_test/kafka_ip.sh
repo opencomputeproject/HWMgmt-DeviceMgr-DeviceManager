@@ -18,4 +18,4 @@
 # KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations
 # under the License.
-kubectl exec cord-kafka-0 -- ip addr | grep "scope global" | grep -oE "([0-9]{1,3}\\.){3}[0-9]{1,3}\\b"
+kubectl -n manager exec cord-kafka-0 -- ip addr | grep "scope global" | grep -oE "([0-9]{1,3}\\.){3}[0-9]{1,3}\\b"

@@ -20,9 +20,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-./dm attach $1:$2:120
-./dm setsessionservice $1:$2:"":true:300
-token=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
+./dm attach $1:$2:120:1:false
+./dm setsessionservice $1:$2:"":true:300 2>&1 > /dev/null
+token=`./dm logindevice $1:$2:$5:$6:false| cut -d' ' -f4`
 ./dm period $1:$2:$token:30
 ./dm period $1:$2:$token:3
 ./dm period $1:$2:$token:0

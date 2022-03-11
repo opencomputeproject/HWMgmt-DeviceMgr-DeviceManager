@@ -18,14 +18,13 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
-ip1:port1 set ok!
 accounts list : account:{key:"admin" value:"admin_token"}
 admin_1 created
 operator created
 readonly created
 accounts list : account:{key:"admin" value:"admin_token"} account:{key:"admin_1" value:"admin_1_token"} account:{key:"operator" value:"operator_token"} account:{key:"readonly" value:"readonly_token"}
-The user operator privilege is not administrator
-The user readonly privilege is not administrator
+The user privilege is not administrator
+The user privilege is not administrator
 admin_1 deleted
 operator deleted
 readonly deleted

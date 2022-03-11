@@ -30,96 +30,99 @@ import (
 	logrus "github.com/sirupsen/logrus"
 )
 
-//RfManager ...
-const RfManager = "/redfish/v1/Managers/"
+const (
+	//RfManager ...
+	RfManager = "/redfish/v1/Managers/"
+)
 
-//RfLogService ...
-const RfLogService = RfManager + "1/LogServices/1/"
-
-func (s *Server) checkLogServiceState(deviceIPAddress string, token string) (state bool) {
-	logState := s.getDeviceData(deviceIPAddress, RfLogService, token, 1, "ServiceEnabled")
-	if logState == nil {
-		logrus.Errorf("Failed to get device log service state from this device %s", deviceIPAddress)
-		return false
+func (s *Server) checkLogServiceState(deviceIPAddress, authStr, id string) (logService string, state bool) {
+	state = false
+	managerMembers, _, _ := s.getDeviceData(deviceIPAddress, RfManager, authStr, 2, "@odata.id")
+	for _, managerMember := range managerMembers {
+		logServices, _, _ := s.getDeviceData(deviceIPAddress, managerMember+"/LogServices", authStr, 2, "@odata.id")
+		for _, logService = range logServices {
+			logserviceID, _, _ := s.getDeviceData(deviceIPAddress, logService, authStr, 1, "Id")
+			if logserviceID[0] == id {
+				logState, _, _ := s.getDeviceData(deviceIPAddress, logService, authStr, 1, "ServiceEnabled")
+				if logState == nil {
+					logrus.Errorf(ErrGetLogServiceStateFailed.String())
+					return "", false
+				}
+				state, _ = strconv.ParseBool(logState[0])
+				return logService, state
+			}
+		}
 	}
-	state, _ = strconv.ParseBool(logState[0])
-	return state
+	return "", state
 }
 
-func (s *Server) changeDeviceLogService(deviceIPAddress string, token string, state bool) (statusCode int, err error) {
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " is not available in deivce")
+func (s *Server) changeDeviceLogService(deviceIPAddress, authStr, id string, state bool) (statusCode int, err error) {
+	logServiceLoc, logState := s.checkLogServiceState(deviceIPAddress, authStr, id)
+	if logServiceLoc == "" {
+		logrus.Errorf(ErrGetLogServiceRfAPI.String())
+		return http.StatusBadRequest, errors.New(ErrGetLogServiceRfAPI.String())
 	}
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this deivce")
+	if logServiceLoc != "" && logState == state {
+		logrus.Errorf(ErrLogServiceInTheState.String(strconv.FormatBool(state)))
+		return http.StatusBadRequest, errors.New(ErrLogServiceInTheState.String(strconv.FormatBool(state)))
 	}
-	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != UserPrivileges[0] && userPrivilege != UserPrivileges[1] {
-		logrus.Errorf("The user %s privilege could not change Log sevice state from this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user privilege could not change state from  this device")
-	}
-	if s.checkLogServiceState(deviceIPAddress, token) == state {
-		logrus.Errorf("The log service state has in the " + strconv.FormatBool(state) + " from device " + deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The log service state has in the " + strconv.FormatBool(state) + " from device " + deviceIPAddress)
+	userAuthData := s.getUserAuthData(deviceIPAddress, authStr)
+	if (userAuthData == userAuth{}) {
+		logrus.Errorf(ErrUserAuthNotFound.String())
+		return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
 	}
 	ServiceInfo := map[string]interface{}{}
 	ServiceInfo["ServiceEnabled"] = state
-	_, _, statusCode, _ = patchHTTPDataByRfAPI(deviceIPAddress, RfLogService, token, ServiceInfo)
-	if statusCode != http.StatusNoContent {
-		logrus.Errorf("Failed to set log service state to device %s, status code %d", deviceIPAddress, statusCode)
-		return statusCode, errors.New("Failed to set log service state to device " + deviceIPAddress)
+	_, _, statusCode, _ = patchHTTPDataByRfAPI(deviceIPAddress, logServiceLoc, userAuthData, ServiceInfo)
+	if statusCode != http.StatusNoContent && statusCode != http.StatusOK {
+		logrus.Errorf(ErrSetLogServiceFailed.String(strconv.Itoa(statusCode)))
+		return statusCode, errors.New(ErrSetLogServiceFailed.String(strconv.Itoa(statusCode)))
 	}
 	return statusCode, nil
 }
 
-func (s *Server) resetDeviceLogData(deviceIPAddress string, token string) (statusCode int, err error) {
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " is not available in deivce")
+func (s *Server) resetDeviceLogData(deviceIPAddress, authStr, id string) (statusCode int, err error) {
+	logServiceLoc, _ := s.checkLogServiceState(deviceIPAddress, authStr, id)
+	if logServiceLoc == "" {
+		logrus.Errorf(ErrGetLogServiceRfAPI.String())
+		return http.StatusBadRequest, errors.New(ErrGetLogServiceRfAPI.String())
 	}
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this deivce")
-	}
-	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != UserPrivileges[0] && userPrivilege != UserPrivileges[1] {
-		logrus.Errorf("The user %s privilege could not change Log sevice state from this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user privilege could not change state from  this device")
+	userAuthData := s.getUserAuthData(deviceIPAddress, authStr)
+	if (userAuthData == userAuth{}) {
+		logrus.Errorf(ErrUserAuthNotFound.String())
+		return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
 	}
 	ServiceInfo := map[string]interface{}{}
 	ServiceInfo[""] = ""
-	_, _, statusCode, _ = postHTTPDataByRfAPI(deviceIPAddress, RfLogService+"Actions/LogService.Reset", token, ServiceInfo)
+	_, _, statusCode, _ = postHTTPDataByRfAPI(deviceIPAddress, logServiceLoc+"/Actions/LogService.Reset", userAuthData, ServiceInfo)
 	if statusCode != http.StatusOK {
-		logrus.Errorf("Failed to reset log data to device %s, status code %d", deviceIPAddress, statusCode)
-		return statusCode, errors.New("Failed to reset log data to device " + deviceIPAddress)
+		logrus.Errorf(ErrResetLogDataFailed.String(strconv.Itoa(statusCode)))
+		return statusCode, errors.New(ErrResetLogDataFailed.String(strconv.Itoa(statusCode)))
 	}
 	return statusCode, nil
 }
 
-func (s *Server) getDeviceLogData(deviceIPAddress string, token string) (retData []string, statusCode int, err error) {
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-		return nil, http.StatusBadRequest, errors.New("The user account " + userName + " is not available in deivce")
+func (s *Server) getDeviceLogData(deviceIPAddress, authStr, id string) (retData []string, statusCode int, err error) {
+	logServiceLoc, _ := s.checkLogServiceState(deviceIPAddress, authStr, id)
+	if logServiceLoc == "" {
+		logrus.Errorf(ErrGetLogServiceRfAPI.String())
+		return nil, http.StatusBadRequest, errors.New(ErrGetLogServiceRfAPI.String())
 	}
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return nil, http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this deivce")
+	userAuthData := s.getUserAuthData(deviceIPAddress, authStr)
+	if (userAuthData == userAuth{}) {
+		logrus.Errorf(ErrUserAuthNotFound.String())
+		return nil, http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
 	}
 	dataSlice := []string{}
-	httpData, statusCode, _ := getHTTPBodyDataByRfAPI(deviceIPAddress, RfLogService+"Entries", token)
+	httpData, statusCode, _ := getHTTPBodyDataByRfAPI(deviceIPAddress, logServiceLoc+"/Entries", userAuthData)
 	if statusCode != http.StatusOK || httpData == nil {
-		logrus.Errorf("Failed to get device data, status code %d", statusCode)
-		return nil, statusCode, errors.New("Failed to get device data")
+		logrus.Errorf(ErrGetDeviceData.String(strconv.Itoa(statusCode)))
+		return nil, statusCode, errors.New(ErrGetDeviceData.String(strconv.Itoa(statusCode)))
 	}
 	var jsonData []byte
 	jsonData, err = json.Marshal(httpData)
 	if err != nil {
-		return nil, http.StatusInternalServerError, errors.New("HTTP Data update error")
+		return nil, http.StatusInternalServerError, errors.New(ErrHTTPDataUpdateFailed.String())
 	}
 	dataSlice = append(dataSlice, string(jsonData))
 	return dataSlice, statusCode, nil

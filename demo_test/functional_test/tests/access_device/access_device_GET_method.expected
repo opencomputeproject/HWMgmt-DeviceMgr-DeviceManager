@@ -18,8 +18,7 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
-ip1:port1 set ok!
 {"@odata.context":"/redfish/v1/$metadata#Chassis.Chassis","@odata.id":"/redfish/v1/Chassis","@odata.type":"#ChassisCollection.ChassisCollection","Description":"Collection of Chassis","Members":[{"@odata.id":"/redfish/v1/Chassis/1"}],"Members@odata.count":1,"Name":"Chassis Collection"}
-Failed to get device data
-Failed to get device data
+Failed to get device data, status code 404
+Failed to get device data, status code 404
 ip1:port1 detached

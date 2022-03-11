@@ -35,16 +35,34 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-//RfDataCollectDummyInterval :
-const RfDataCollectDummyInterval = 1000
+const (
+	//RfDataCollectDummyInterval ...
+	RfDataCollectDummyInterval = 1000
+	//RfDataCollectThreshold ...
+	RfDataCollectThreshold = 1
+)
 
-//RfDataCollectThreshold :
-const RfDataCollectThreshold = 5
-
-var redfishResources = []string{"/redfish/v1/Chassis/"}
-var pvmount = os.Getenv("DEVICE_MANAGEMENT_PVMOUNT")
-var subscriptionListPath string
-var deviceDataPath string
+var (
+	//OCP BaseLine Redfish API
+	//redfishResources ...
+	redfishResources = []string{"/redfish/v1",
+		"/redfish/v1/Chassis",
+		"/redfish/v1/Managers",
+		"/redfish/v1/SessionService",
+		"/redfish/v1/SessionService/Sessions",
+		"/redfish/v1/AccountService",
+		"/redfish/v1/AccountService/Accounts",
+		"/redfish/v1/AccountService/Roles",
+		"/redfish/v1/AccountService/Roles/Administrator",
+		"/redfish/v1/AccountService/Roles/Operator",
+		"/redfish/v1/AccountService/Roles/ReadOnly"}
+	//pvmount ...
+	pvmount = os.Getenv("DEVICE_MANAGEMENT_PVMOUNT")
+	//subscriptionListPath ...
+	subscriptionListPath string
+	//deviceDataPath ...
+	deviceDataPath string
+)
 
 func (s *Server) updateDataFile(ipAddress string) {
 	s.devicemap[ipAddress].DeviceLockFile.Lock()
@@ -116,38 +134,22 @@ func (s *Server) movePositionOfFileToBegin(deviceIPAddress string) error {
 	return nil
 }
 
-func (s *Server) addPollingRfAPI(deviceIPAddress string, token string, rfAPI string) (statusNum int, err error) {
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this deivce")
-	}
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " is not available in deivce")
-	}
-	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != UserPrivileges[0] && userPrivilege != UserPrivileges[1] {
-		logrus.Errorf("The user %s privilege could not configure the Redfish API to this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user privilege could not configure the Redfish API")
-	}
+func (s *Server) addPollingRfAPI(deviceIPAddress, authStr, rfAPI string) (statusNum int, err error) {
 	if len(rfAPI) == 0 {
-		logrus.Errorf("The Redfish API is empty")
-		return http.StatusBadRequest, errors.New("The Redfish API is empty")
+		logrus.Errorf(ErrRfAPIEmpty.String())
+		return http.StatusBadRequest, errors.New(ErrRfAPIEmpty.String())
 	}
-	lastByte := rfAPI[len(rfAPI)-1:]
-	if lastByte != "/" {
-		rfAPI = rfAPI + "/"
-	}
-	odata := s.getDeviceData(deviceIPAddress, rfAPI, token, 1, "@odata.id")
+	rfAPI = addSlashToTail(rfAPI)
+	odata, _, _ := s.getDeviceData(deviceIPAddress, rfAPI, authStr, 1, "@odata.id")
 	if odata == nil {
-		logrus.Errorf("The Redfish API is invalid")
-		return http.StatusBadRequest, errors.New("The Redfish API is invalid")
+		logrus.Errorf(ErrRfAPIInvalid.String())
+		return http.StatusBadRequest, errors.New(ErrRfAPIInvalid.String())
 	}
 	for _, api := range s.devicemap[deviceIPAddress].RfAPIList {
+		api = addSlashToTail(api)
 		if api == rfAPI {
-			logrus.Errorf("The Redfish API is exists")
-			return http.StatusBadRequest, errors.New("The Redfish API is exits")
+			logrus.Errorf(ErrRfAPIExists.String())
+			return http.StatusBadRequest, errors.New(ErrRfAPIExists.String())
 		}
 	}
 	s.devicemap[deviceIPAddress].RfAPIList = append(s.devicemap[deviceIPAddress].RfAPIList, rfAPI)
@@ -155,34 +157,18 @@ func (s *Server) addPollingRfAPI(deviceIPAddress string, token string, rfAPI str
 	return http.StatusOK, nil
 }
 
-func (s *Server) removePollingRfAPI(deviceIPAddress string, token string, rfAPI string) (statusNum int, err error) {
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this deivce")
-	}
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " is not available in deivce")
-	}
-	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != UserPrivileges[0] && userPrivilege != UserPrivileges[1] {
-		logrus.Errorf("The user %s privilege could not remove the Redfish API to this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user privilege could not configure the Redfish API")
-	}
+func (s *Server) removePollingRfAPI(deviceIPAddress, rfAPI string) (statusNum int, err error) {
 	if len(rfAPI) == 0 {
-		logrus.Errorf("The Redfish API is empty")
-		return http.StatusBadRequest, errors.New("The Redfish API is empty")
+		logrus.Errorf(ErrRfAPIEmpty.String())
+		return http.StatusBadRequest, errors.New(ErrRfAPIEmpty.String())
 	}
-	lastByte := rfAPI[len(rfAPI)-1:]
-	if lastByte != "/" {
-		rfAPI = rfAPI + "/"
-	}
+	rfAPI = addSlashToTail(rfAPI)
 	if len(s.devicemap[deviceIPAddress].RfAPIList) != 0 {
 		list := s.devicemap[deviceIPAddress].RfAPIList
 		var found bool
 		found = false
 		for key, data := range list {
+			data = addSlashToTail(data)
 			if data == rfAPI {
 				s.devicemap[deviceIPAddress].RfAPIList = append(list[:key], list[key+1:]...)
 				s.updateDataFile(deviceIPAddress)
@@ -191,29 +177,26 @@ func (s *Server) removePollingRfAPI(deviceIPAddress string, token string, rfAPI 
 			}
 		}
 		if found == false {
-			logrus.Errorf("The Redfish API does not exist")
-			return http.StatusBadRequest, errors.New("The Redfish API does not exist")
+			logrus.Errorf(ErrRfAPINotExists.String())
+			return http.StatusBadRequest, errors.New(ErrRfAPINotExists.String())
 		}
 	} else {
-		logrus.Errorf("It is nothing Redfish API to remove at present")
-		return http.StatusBadRequest, errors.New("It is nothing Redfish API to remove at present")
+		logrus.Errorf(ErrNoRfRemove.String())
+		return http.StatusBadRequest, errors.New(ErrNoRfRemove.String())
 	}
 	return http.StatusOK, nil
 }
 
-func (s *Server) getRfAPIList(deviceIPAddress string, token string) (list []string, statusNum int, err error) {
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return nil, http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this deivce")
-	}
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-		return nil, http.StatusBadRequest, errors.New("The user account " + userName + " is not available in deivce")
-	}
+func (s *Server) clearPollingRfAPI(deviceIPAddress string) (statusNum int, err error) {
+	s.devicemap[deviceIPAddress].RfAPIList = []string{}
+	s.updateDataFile(deviceIPAddress)
+	return http.StatusOK, nil
+}
+
+func (s *Server) getRfAPIList(deviceIPAddress string) (list []string, statusNum int, err error) {
 	if len(s.devicemap) == 0 {
-		logrus.Errorf("No any device found")
-		return nil, http.StatusBadRequest, errors.New("No any device found")
+		logrus.Errorf(ErrNoDevice.String())
+		return nil, http.StatusBadRequest, errors.New(ErrNoDevice.String())
 	}
 	return s.devicemap[deviceIPAddress].RfAPIList, http.StatusOK, nil
 }
@@ -234,21 +217,30 @@ func (s *Server) collectData(ipAddress string) {
 			logrus.Errorf("Failed to produce message:%s", err)
 		case <-ticker.C:
 			if s.devicemap[ipAddress].QueryState == true {
-				userName := s.devicemap[ipAddress].QueryUser
 				done := false
 				for _, resource := range s.devicemap[ipAddress].RfAPIList {
-					data := s.getDeviceDataByResource(ipAddress, resource, userName)
-					if data != nil {
+					userAuthData := s.devicemap[ipAddress].QueryUser
+					if _, ipErr := s.getFunctionsResult("checkIPAddress", ipAddress, "", ""); ipErr != nil {
+						continue
+					}
+					data, err := s.getDeviceDataByResource(ipAddress, resource, userAuthData)
+					if data != nil && err == nil {
 						for index, str := range data {
 							str = strings.Replace(str, "\n", "", -1)
 							str = strings.Replace(str, " ", "", -1)
 							data[index] = str
-							str = "Device IP: " + ipAddress + " " + str
-							logrus.Infof("collected data  %s", str)
+							//This is embedded device IP to prefix of messages insteads of sending different Kafka topics
+							//str = "Device IP: " + ipAddress + " " + str
+							//logrus.Infof("collected data  %s", str)
+							logrus.Infof("collected data Device IP: %s %s ", ipAddress, str)
 							b := []byte(str)
-							msg := &sarama.ProducerMessage{Topic: importerTopic, Value: sarama.StringEncoder(b)}
-							s.dataproducer.Input() <- msg
-							logrus.Info("Produce message")
+							if strings.Contains(ipAddress, ":") {
+								splits := strings.Split(ipAddress, ":")
+								ip, port := splits[0], splits[1]
+								ipAddr := ip + "-" + port
+								msg := &sarama.ProducerMessage{Topic: managerTopic + "-" + ipAddr, Value: sarama.StringEncoder(b)}
+								s.dataproducer.Input() <- msg
+							}
 						}
 						if done == false {
 							err := s.movePositionOfFileToBegin(ipAddress)
@@ -261,7 +253,7 @@ func (s *Server) collectData(ipAddress string) {
 							dataSlice := []string{}
 							nowTime := time.Now()
 							jsonData = jsonData[1:]
-							dataSlice = append(dataSlice, "{\"DataTimestamp\":\""+nowTime.Format("01-02-2006 15:04:05")+"\","+jsonData)
+							dataSlice = append(dataSlice, "{\"DataTimestamp\":\""+nowTime.Format("01-02-2006 15:04:05.000")+"\","+jsonData)
 							s.saveDeviceDataFile(ipAddress, dataSlice)
 						}
 					}
@@ -288,24 +280,10 @@ func getDataFile(ip string) *os.File {
 	return f
 }
 
-func (s *Server) removeDeviceFile(deviceIPAddress string, token string) (err error) {
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return errors.New("The user account " + userName + " does not login to this deivce")
-	}
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-		return errors.New("The user account " + userName + " is not available in deivce")
-	}
+func (s *Server) removeDeviceFile(deviceIPAddress string) (err error) {
 	if len(s.devicemap) == 0 {
-		logrus.Errorf("No any device found")
-		return errors.New("No any device found")
-	}
-	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != UserPrivileges[0] {
-		logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
-		return errors.New("The user " + userName + " privilege is not administrator")
+		logrus.Errorf(ErrNoDevice.String())
+		return errors.New(ErrNoDevice.String())
 	}
 	s.devicemap[deviceIPAddress].DeviceLockFile.Lock()
 	defer s.devicemap[deviceIPAddress].DeviceLockFile.Unlock()
@@ -314,14 +292,14 @@ func (s *Server) removeDeviceFile(deviceIPAddress string, token string) (err err
 		logrus.Infof("deleteing file %s", deviceFile.Name())
 		err := deviceFile.Close()
 		if err != nil {
-			logrus.Errorf("error closing device file %s %s", deviceFile.Name(), err)
+			logrus.Errorf(ErrCloseFile.String(deviceFile.Name(), err.Error()))
 		}
 		err = os.Remove(deviceFile.Name())
 		if err != nil {
-			logrus.Errorf("error deleting device file %s Error: %s ", deviceFile.Name(), err)
+			logrus.Errorf(ErrDeleteFile.String(deviceFile.Name(), err.Error()))
 		}
 	} else {
-		logrus.Errorf("Device file not found (%s)", deviceIPAddress)
+		logrus.Errorf(ErrDeviceFileNotFound.String(deviceIPAddress))
 	}
 	return err
 }
@@ -339,29 +317,15 @@ func getDeviceDataFile(ip string) *os.File {
 	}
 	f, err := os.OpenFile(deviceDataPath+"/"+ip, os.O_CREATE|os.O_RDWR, 0664)
 	if err != nil {
-		logrus.Errorf("Openfile device data err %s", err)
+		logrus.Errorf(ErrOpenDeviceFailed.String(err.Error()))
 	}
 	return f
 }
 
-func (s *Server) removeDeviceDataFile(deviceIPAddress string, token string) (err error) {
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return errors.New("The user account " + userName + " does not login to this deivce")
-	}
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-		return errors.New("The user account " + userName + " is not available in deivce")
-	}
+func (s *Server) removeDeviceDataFile(deviceIPAddress string) (err error) {
 	if len(s.devicemap) == 0 {
-		logrus.Errorf("No any device found")
-		return errors.New("No any device found")
-	}
-	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != UserPrivileges[0] {
-		logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
-		return errors.New("The user " + userName + " privilege is not administrator")
+		logrus.Errorf(ErrNoDevice.String())
+		return errors.New(ErrNoDevice.String())
 	}
 	s.devicemap[deviceIPAddress].DeviceDataLockFile.Lock()
 	defer s.devicemap[deviceIPAddress].DeviceDataLockFile.Unlock()
@@ -370,14 +334,14 @@ func (s *Server) removeDeviceDataFile(deviceIPAddress string, token string) (err
 		logrus.Infof("deleteing device data file %s", deviceDataFile.Name())
 		err := deviceDataFile.Close()
 		if err != nil {
-			logrus.Errorf("error closing device data file %s %s", deviceDataFile.Name(), err)
+			logrus.Errorf(ErrCloseDataFile.String(deviceDataFile.Name(), err.Error()))
 		}
 		err = os.Remove(deviceDataFile.Name())
 		if err != nil {
-			logrus.Errorf("error deleting device datafile %s Error: %s ", deviceDataFile.Name(), err)
+			logrus.Errorf(ErrDeleteDataFile.String(deviceDataFile.Name(), err.Error()))
 		}
 	} else {
-		logrus.Errorf("Device data file not found (%s)", deviceIPAddress)
+		logrus.Errorf(ErrDeviceDataFileNotFound.String(deviceIPAddress))
 	}
 	return err
 }
@@ -388,55 +352,28 @@ func (s *Server) closeDeviceDataFiles() {
 	}
 }
 
-func (s *Server) startQueryDeviceData(deviceIPAddress string, token string) (statusNum int, err error) {
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", token, deviceIPAddress)
-		return http.StatusNotFound, errors.New("The user account is not available in deivce")
-	}
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this deivce")
+func (s *Server) startQueryDeviceData(deviceIPAddress string, authStr string) (statusNum int, err error) {
+	userAuthData := s.getUserAuthData(deviceIPAddress, authStr)
+	if (userAuthData == userAuth{}) {
+		logrus.Errorf(ErrUserAuthNotFound.String())
+		return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
 	}
 	s.devicemap[deviceIPAddress].QueryState = true
-	s.devicemap[deviceIPAddress].QueryUser = userName
+	s.devicemap[deviceIPAddress].QueryUser = userAuthData
 	return http.StatusOK, nil
 }
 
-func (s *Server) stopQueryDeviceData(deviceIPAddress string, token string) (statusNum int, err error) {
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", token, deviceIPAddress)
-		return http.StatusNotFound, errors.New("The user account is not available in deivce")
-	}
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this deivce")
-	}
+func (s *Server) stopQueryDeviceData(deviceIPAddress string) (statusNum int, err error) {
 	s.devicemap[deviceIPAddress].QueryState = false
-	s.devicemap[deviceIPAddress].QueryUser = ""
+	s.devicemap[deviceIPAddress].QueryUser = userAuth{}
 	return http.StatusOK, nil
 }
 
-func (s *Server) setFrequency(deviceIPAddress string, token string, frequency uint32) (statusNum int, err error) {
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " is not available in device")
-	}
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this device")
-	}
-	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != UserPrivileges[0] && userPrivilege != UserPrivileges[1] {
-		logrus.Errorf("The user %s privilege could not configure the frequency of querying data from this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user privilege could not configure the frequency of querying data from this device")
-	}
+func (s *Server) setFrequency(deviceIPAddress string, frequency uint32) (statusNum int, err error) {
 	if frequency >= 0 && frequency < RfDataCollectThreshold {
 		logrus.WithFields(logrus.Fields{
-			"IP address:port": deviceIPAddress}).Info("The frequency value is invalid")
-		return http.StatusBadRequest, status.Errorf(http.StatusBadRequest, "The frequency is invalid")
+			"IP address:port": deviceIPAddress}).Info(ErrFreqValueInvalid.String())
+		return http.StatusBadRequest, status.Errorf(http.StatusBadRequest, ErrFreqValueInvalid.String())
 	}
 	s.devicemap[deviceIPAddress].Freqchan <- frequency
 	s.devicemap[deviceIPAddress].Freq = frequency

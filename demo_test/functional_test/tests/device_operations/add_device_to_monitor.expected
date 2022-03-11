@@ -18,10 +18,8 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 ip2:port2 attached
-ip1:port1 set ok!
-ip2:port2 set ok!
 Device ip ip1:port1 already registered
-Port number 88 should be 8888
+The device ip1:88 could not reach
 Port number  needs to be an integer
 ip1:port1 detached
 ip2:port2 detached

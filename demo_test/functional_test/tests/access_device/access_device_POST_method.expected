@@ -18,7 +18,6 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
-ip1:port1 set ok!
 admin_1 created
 admin logouted
 {"@odata.context":"/redfish/v1/$metadata#SessionCollection.SessionCollection","@odata.id":"/redfish/v1/SessionService/Sessions","@odata.type":"#SessionCollection.SessionCollection","Description":"Session Collection","Members":[{"@odata.id":"/redfish/v1/SessionService/Sessions/USERID1"}],"Members@odata.count":1,"Name":"Session Collection"}

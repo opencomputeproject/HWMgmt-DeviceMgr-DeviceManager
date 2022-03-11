@@ -24,66 +24,198 @@ package main
 import (
 	"errors"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 
 	logrus "github.com/sirupsen/logrus"
 )
 
-//RfAccountsService :
-const RfAccountsService = "/redfish/v1/AccountService/"
+const (
+	//RfAccountsService ...
+	RfAccountsService = "/redfish/v1/AccountService/"
+	//RfAccountsServiceAccounts ...
+	RfAccountsServiceAccounts = "/redfish/v1/AccountService/Accounts/"
+	//RfAccountsServiceRoles ...
+	RfAccountsServiceRoles = "/redfish/v1/AccountService/Roles"
+	//RfSessionService ...
+	RfSessionService = "/redfish/v1/SessionService/"
+	//RfSessionServiceSessions ...
+	RfSessionServiceSessions = "/redfish/v1/SessionService/Sessions/"
+	//RfSessionTimeOut ...
+	RfSessionTimeOut = 300
+)
 
-//RfAccountsServiceAccounts  :
-const RfAccountsServiceAccounts = "/redfish/v1/AccountService/Accounts/"
+const (
+	//UserNameMaxLength ...
+	UserNameMaxLength = 256
+	//PasswordMaxLength ...
+	PasswordMaxLength = 256
+)
 
-//RfSessionService :
-const RfSessionService = "/redfish/v1/SessionService/"
+var (
+	//UserPrivileges ...
+	UserPrivileges = []string{"Administrator", "Operator", "ReadOnly"}
+	//AdminstratorAssignedPrivileges ...
+	AdminstratorAssignedPrivileges = []string{"Login", "ConfigureManager", "ConfigureUsers", "ConfigureSelf", "ConfigureComponents"}
+	//OperatorAssignedPrivileges ...
+	OperatorAssignedPrivileges = []string{"Login", "ConfigureSelf", "ConfigureComponents"}
+	//ReadOnlyUserAssignedPrivileges ...
+	ReadOnlyUserAssignedPrivileges = []string{"Login", "ConfigureSelf"}
+)
 
-//RfSessionServiceSessions :
-const RfSessionServiceSessions = "/redfish/v1/SessionService/Sessions/"
-
-//RfSessionTimeOut :
-const RfSessionTimeOut = 300
-
-//UserPrivileges :
-var UserPrivileges = []string{"Administrator", "Operator", "ReadOnly"}
-
-//UserNameMaxLength :
-const UserNameMaxLength = 256
-
-//PasswordMaxLength :
-const PasswordMaxLength = 256
-
-func (s *Server) getTokenByUser(deviceIPAddress string, userName string) string {
-	if len(s.devicemap) != 0 {
-		return s.devicemap[deviceIPAddress].UserLoginInfo[userName]
-	}
-	return ""
+func (s *Server) getAuthTypeEnum(authType bool) int {
+	return func() int {
+		if authType == false {
+			return authTypeEnum.TOKEN
+		} else {
+			return authTypeEnum.BASIC
+		}
+	}()
 }
 
-func (s *Server) getUserByToken(deviceIPAddress string, token string) string {
-	if len(s.devicemap) != 0 {
-		for userName, UserToken := range s.devicemap[deviceIPAddress].UserLoginInfo {
-			if token == UserToken {
-				return userName
+func (s *Server) updateAuthData(deviceIPAddress, token, userName, password string, authType bool) userAuth {
+	if s.devicemap[deviceIPAddress] != nil {
+		s.devicemap[deviceIPAddress].UserAuthLock.Lock()
+		defer s.devicemap[deviceIPAddress].UserAuthLock.Unlock()
+		if len(deviceIPAddress) != 0 && s.devicemap[deviceIPAddress] != nil {
+			aType := s.getAuthTypeEnum(authType)
+			s.devicemap[deviceIPAddress].UserLoginInfo[userName] = userAuth{AuthType: aType,
+				Token:    token,
+				UserName: userName,
+				Password: password}
+			return s.devicemap[deviceIPAddress].UserLoginInfo[userName]
+		}
+	}
+	return userAuth{}
+}
+
+func (s *Server) getUserAuthData(deviceIPAddress, authStr string) userAuth {
+	if s.devicemap[deviceIPAddress] != nil {
+		s.devicemap[deviceIPAddress].UserAuthLock.Lock()
+		defer s.devicemap[deviceIPAddress].UserAuthLock.Unlock()
+		if authStr != "" {
+			userLoginInfo := s.devicemap[deviceIPAddress].UserLoginInfo
+			for userName, userAuthData := range userLoginInfo {
+				if userAuthData.Token == authStr || userName == authStr {
+					return userAuthData
+				}
+			}
+		} else if authStr == "" {
+			if s.devicemap[deviceIPAddress].PassAuth == true {
+				return userAuth{AuthType: authTypeEnum.NONE}
+			}
+		}
+	} else if authStr == "" {
+		return userAuth{AuthType: authTypeEnum.NONE}
+	}
+	return userAuth{}
+}
+
+func (s *Server) getAuthStrByUser(deviceIPAddress, user string) string {
+	if s.devicemap[deviceIPAddress] != nil {
+		s.devicemap[deviceIPAddress].UserAuthLock.Lock()
+		defer s.devicemap[deviceIPAddress].UserAuthLock.Unlock()
+		if user != "" && s.devicemap[deviceIPAddress] != nil {
+			userLoginInfo := s.devicemap[deviceIPAddress].UserLoginInfo
+			for userName, userAuthData := range userLoginInfo {
+				if user == userName {
+					switch userAuthData.AuthType {
+					case authTypeEnum.TOKEN:
+						return userAuthData.Token
+					case authTypeEnum.BASIC:
+						return userAuthData.UserName
+					}
+				}
 			}
 		}
 	}
 	return ""
 }
 
-func (s *Server) getUserStatus(deviceIPAddress string, token string, targetUser string) (status bool) {
+func (s *Server) getUserByToken(deviceIPAddress string, token string) string {
+	if s.devicemap[deviceIPAddress] != nil {
+		s.devicemap[deviceIPAddress].UserAuthLock.Lock()
+		defer s.devicemap[deviceIPAddress].UserAuthLock.Unlock()
+		if len(s.devicemap) != 0 {
+			for userName, userAuthData := range s.devicemap[deviceIPAddress].UserLoginInfo {
+				if token == userAuthData.Token {
+					return userName
+				}
+			}
+		}
+	}
+	return ""
+}
+
+func (s *Server) getUserLoginID(deviceIPAddress, authStr, userName string) (id string, status bool, statusCode int, err error) {
 	var found bool
 	found = false
-	count := strings.Join(s.getDeviceData(deviceIPAddress, RfAccountsServiceAccounts, token, 1, "Members@odata.count"), " ")
-	if len(count) != 0 {
-		userAPI := RfAccountsServiceAccounts + targetUser
-		userList := s.getDeviceData(deviceIPAddress, RfAccountsServiceAccounts, token, 2, "@odata.id")
-		if userList != nil {
-			for _, user := range userList {
-				if user == userAPI {
+	sessions, statusCode, err := s.getDeviceData(deviceIPAddress, RfSessionServiceSessions, authStr, 2, "@odata.id")
+	if sessions != nil {
+		for _, session := range sessions {
+			userData, statusCode, err := s.getDeviceData(deviceIPAddress, session, authStr, 1, "UserName")
+			if user := strings.Join(userData, " "); user == userName && err == nil && statusCode == http.StatusOK {
+				idData, statusCode, err := s.getDeviceData(deviceIPAddress, session, authStr, 1, "Id")
+				if idData != nil && err == nil && statusCode == http.StatusOK {
+					id = strings.Join(idData, " ")
 					found = true
 					break
+				}
+			}
+		}
+	}
+	return id, found, statusCode, err
+}
+
+func (s *Server) getAccountDataByLabel(deviceIPAddress, authStr, userName, label string) (labelData string, status bool) {
+	var found bool
+	found = false
+	accounts, _, _ := s.getDeviceData(deviceIPAddress, RfAccountsServiceAccounts, authStr, 2, "@odata.id")
+	if accounts != nil {
+		for _, account := range accounts {
+			userData, _, _ := s.getDeviceData(deviceIPAddress, account, authStr, 1, "UserName")
+			if userData != nil {
+				if user := strings.Join(userData, " "); user == userName {
+					data, _, _ := s.getDeviceData(deviceIPAddress, account, authStr, 1, label)
+					labelData = strings.Join(data, " ")
+					found = true
+					break
+				}
+			}
+		}
+	}
+	return labelData, found
+}
+
+func (s *Server) deleteDeviceSession(deviceIPAddress, authStr, userName string, userAuthData userAuth) (statusCode int, err error) {
+	id, status, statusCode, err := s.getUserLoginID(deviceIPAddress, authStr, userName)
+	if err == nil && status == true {
+		_, statusCode, err = deleteHTTPDataByRfAPI(deviceIPAddress, RfSessionServiceSessions, userAuthData, id)
+		if statusCode != http.StatusOK {
+			logrus.Errorf(ErrDeleteLoginFailed.String(id, strconv.Itoa(statusCode)))
+			return statusCode, errors.New(ErrDeleteLoginFailed.String(id, strconv.Itoa(statusCode)))
+		}
+	}
+	return statusCode, err
+}
+
+func (s *Server) getUserStatus(deviceIPAddress, authStr, targetUser string) (status bool) {
+	var found bool
+	found = false
+	odata, _, _ := s.getDeviceData(deviceIPAddress, RfAccountsServiceAccounts, authStr, 1, "Members@odata.count")
+	count := strings.Join(odata, " ")
+	if len(count) != 0 {
+		userList, _, _ := s.getDeviceData(deviceIPAddress, RfAccountsServiceAccounts, authStr, 2, "@odata.id")
+		if userList != nil {
+			for _, user := range userList {
+				userData, _, _ := s.getDeviceData(deviceIPAddress, user, authStr, 1, "UserName")
+				if userData != nil {
+					userName := strings.Join(userData, " ")
+					if userName == targetUser {
+						found = true
+						break
+					}
 				}
 			}
 		}
@@ -91,17 +223,50 @@ func (s *Server) getUserStatus(deviceIPAddress string, token string, targetUser 
 	return found
 }
 
-func (s *Server) getUserPrivilege(deviceIPAddress string, token string, targetUser string) string {
-	var roleID string
-	count := strings.Join(s.getDeviceData(deviceIPAddress, RfAccountsServiceAccounts, token, 1, "Members@odata.count"), " ")
+func (s *Server) getDefineUserPrivilege(deviceIPAddress, authStr string) map[int]string {
+	index := 0
+	userPrivilege := map[int]string{}
+	odata, _, _ := s.getDeviceData(deviceIPAddress, RfAccountsServiceRoles, authStr, 1, "Members@odata.count")
+	count := strings.Join(odata, " ")
 	if len(count) != 0 {
-		userAPI := RfAccountsServiceAccounts + targetUser
-		userList := s.getDeviceData(deviceIPAddress, RfAccountsServiceAccounts, token, 2, "@odata.id")
+		rulesList, _, _ := s.getDeviceData(deviceIPAddress, RfAccountsServiceRoles, authStr, 2, "@odata.id")
+		if rulesList != nil {
+			for _, role := range rulesList {
+				privilege, _, _ := s.getDeviceData(deviceIPAddress, role, authStr, 1, "Id")
+				if len(privilege[0]) != 0 {
+					userPrivilege[index], index = privilege[0], index+1
+				} else {
+					privilegesData, _, _ := s.getDeviceData(deviceIPAddress, role, authStr, 1, "AssignedPrivileges")
+					if reflect.DeepEqual(privilegesData, AdminstratorAssignedPrivileges) == true {
+						userPrivilege[index], index = UserPrivileges[0], index+1
+					} else if reflect.DeepEqual(privilegesData, OperatorAssignedPrivileges) == true {
+						userPrivilege[index], index = UserPrivileges[1], index+1
+					} else if reflect.DeepEqual(privilegesData, ReadOnlyUserAssignedPrivileges) == true {
+						userPrivilege[index], index = UserPrivileges[2], index+1
+					}
+				}
+			}
+		}
+	}
+	return userPrivilege
+}
+
+func (s *Server) getUserPrivilege(deviceIPAddress, authStr, targetUser string) string {
+	var roleID string
+	odata, _, _ := s.getDeviceData(deviceIPAddress, RfAccountsServiceAccounts, authStr, 1, "Members@odata.count")
+	count := strings.Join(odata, " ")
+	if len(count) != 0 {
+		userList, _, _ := s.getDeviceData(deviceIPAddress, RfAccountsServiceAccounts, authStr, 2, "@odata.id")
 		if userList != nil {
 			for _, user := range userList {
-				if user == userAPI {
-					roleID = strings.Join(s.getDeviceData(deviceIPAddress, userAPI, token, 1, "RoleId"), " ")
-					break
+				userData, _, _ := s.getDeviceData(deviceIPAddress, user, authStr, 1, "UserName")
+				if userData != nil {
+					userName := strings.Join(userData, " ")
+					if userName == targetUser {
+						roleData, _, _ := s.getDeviceData(deviceIPAddress, user, authStr, 1, "RoleId")
+						roleID = strings.Join(roleData, " ")
+						break
+					}
 				}
 			}
 		}
@@ -109,12 +274,13 @@ func (s *Server) getUserPrivilege(deviceIPAddress string, token string, targetUs
 	return roleID
 }
 
-func (s *Server) getLoginStatus(deviceIPAddress string, token string, targetUser string) bool {
+func (s *Server) getLoginStatus(deviceIPAddress, authStr, targetUser string) bool {
 	if len(targetUser) != 0 {
-		sessions := s.getDeviceData(deviceIPAddress, RfSessionServiceSessions, token, 2, "@odata.id")
+		sessions, _, _ := s.getDeviceData(deviceIPAddress, RfSessionServiceSessions, authStr, 2, "@odata.id")
 		if sessions != nil {
 			for _, session := range sessions {
-				if user := strings.Join(s.getDeviceData(deviceIPAddress, session, token, 1, "UserName"), " "); user == targetUser {
+				userData, _, _ := s.getDeviceData(deviceIPAddress, session, authStr, 1, "UserName")
+				if user := strings.Join(userData, " "); user == targetUser {
 					return true
 				}
 			}
@@ -123,285 +289,268 @@ func (s *Server) getLoginStatus(deviceIPAddress string, token string, targetUser
 	return false
 }
 
-func (s *Server) validateDeviceAccountData(ip string, username string, password string) (errString string) {
+func (s *Server) validateDeviceAccountData(ip, username, password string) (errString string) {
 	errString = ""
 	if len(username) > UserNameMaxLength {
-		errString = errString + "Device " + ip + ": " + "The device user name length has to below " + strconv.Itoa(UserNameMaxLength) + "characters\n"
+		errString = errString + ErrUsernameLength.String(ip, strconv.Itoa(UserNameMaxLength)) + "\n"
 	}
 	if len(password) > PasswordMaxLength {
-		errString = errString + "Device " + ip + ": " + "The device user password length has to below " + strconv.Itoa(PasswordMaxLength) + "characters\n"
+		errString = errString + ErrUserPwdLength.String(ip, strconv.Itoa(PasswordMaxLength)) + "\n"
 	}
 	return errString
 }
 
-func (s *Server) createDeviceAccount(deviceIPAddress string, token string, newUserName string, newPassword string, role string) (statusNum int, err error) {
+func (s *Server) createDeviceAccount(deviceIPAddress, authStr, newUserName, newPassword, role string) (statusNum int, err error) {
 	var statusCode int
-	if s.getUserStatus(deviceIPAddress, token, newUserName) == true {
-		logrus.Errorf("The user account %s is already in device %s", token, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + newUserName + " is already in device")
-	}
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this device")
-	}
-	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != UserPrivileges[0] {
-		logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user " + userName + " privilege is not administrator")
-	}
 	userInfo := map[string]interface{}{}
-	userInfo["Name"] = "Account Service"
 	if newUserName != "" {
 		userInfo["UserName"] = newUserName
 	} else {
-		return http.StatusBadRequest, errors.New("The user username " + newUserName + " is invalid")
+		return http.StatusBadRequest, errors.New(ErrUsername.String(newUserName))
 	}
 	if newPassword != "" {
 		userInfo["Password"] = newPassword
 	} else {
-		return http.StatusBadRequest, errors.New("The user password is invalid")
+		return http.StatusBadRequest, errors.New(ErrPassword.String())
 	}
 	found := false
-	for _, userPrivilege := range UserPrivileges {
+	for _, userPrivilege := range s.getDefineUserPrivilege(deviceIPAddress, authStr) {
 		if role == userPrivilege {
 			userInfo["RoleId"] = role
 			found = true
 		}
 	}
 	if found != true {
-		return http.StatusBadRequest, errors.New("The user " + newUserName + " privilege is invalid")
+		return http.StatusBadRequest, errors.New(ErrUserPrivilegeInvalid.String(newUserName))
+	}
+	userAuthData := s.getUserAuthData(deviceIPAddress, authStr)
+	if (userAuthData == userAuth{}) {
+		logrus.Errorf(ErrUserAuthNotFound.String())
+		return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
 	}
 	userInfo["Enabled"] = true
-	userInfo["Locked"] = false
-	_, _, statusCode, _ = postHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts, token, userInfo)
+	_, _, statusCode, _ = postHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts, userAuthData, userInfo)
 	if statusCode != http.StatusCreated {
-		logrus.Errorf("Failed to create device account %s, status code %d", newUserName, statusCode)
-		return statusCode, errors.New("Failed to create device account " + newUserName)
+		logrus.Errorf(ErrCreateUserAccount.String(newUserName, strconv.Itoa(statusCode)))
+		return statusCode, errors.New(ErrCreateUserAccount.String(newUserName, strconv.Itoa(statusCode)))
 	}
 	return statusCode, nil
 }
 
-func (s *Server) removeDeviceAccount(deviceIPAddress string, token string, removeUser string) (statusNum int, err error) {
+func (s *Server) removeDeviceAccount(deviceIPAddress string, authStr string, removeUser string) (statusNum int, err error) {
 	var statusCode int
-	if s.getUserStatus(deviceIPAddress, token, removeUser) == false {
-		logrus.Errorf("The user account %s is not available in device %s", token, deviceIPAddress)
-		return http.StatusNotFound, errors.New("The user account " + removeUser + " is not available in device")
+	userAuthData := s.getUserAuthData(deviceIPAddress, authStr)
+	if (userAuthData == userAuth{}) {
+		logrus.Errorf(ErrUserAuthNotFound.String())
+		return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
 	}
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this device")
-	}
-	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != UserPrivileges[0] {
-		logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user " + userName + " privilege is not administrator")
-	} else if userName == removeUser {
-		logrus.Errorf("The user %s could not remove itself, device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user " + userName + " could not remove itself")
-	}
-	sessions := s.getDeviceData(deviceIPAddress, RfSessionServiceSessions, token, 2, "@odata.id")
-	if sessions != nil {
-		for _, session := range sessions {
-			if user := strings.Join(s.getDeviceData(deviceIPAddress, session, token, 1, "UserName"), " "); user == removeUser {
-				id := strings.Join(s.getDeviceData(deviceIPAddress, session, token, 1, "Id"), " ")
-				_, statusCode, _ = deleteHTTPDataByRfAPI(deviceIPAddress, RfSessionServiceSessions, token, id)
-				if statusCode != http.StatusOK {
-					logrus.Errorf("Failed to delete login session id %s, status code %d", id, statusCode)
-					return statusCode, errors.New("Failed to delete login session id " + id)
-				}
-			}
-		}
-		userLoginInfo := s.devicemap[deviceIPAddress].UserLoginInfo
-		if len(userLoginInfo[removeUser]) != 0 {
-			if _, found := userLoginInfo[removeUser]; found {
-				delete(s.devicemap[deviceIPAddress].UserLoginInfo, removeUser)
-				s.updateDataFile(deviceIPAddress)
-			}
+	id, status, _, _ := s.getUserLoginID(deviceIPAddress, authStr, removeUser)
+	if status == true {
+		_, statusCode, _ = deleteHTTPDataByRfAPI(deviceIPAddress, RfSessionServiceSessions, userAuthData, id)
+		if statusCode != http.StatusOK {
+			logrus.Errorf(ErrDeleteLoginFailed.String(id, strconv.Itoa(statusCode)))
+			return statusCode, errors.New(ErrDeleteLoginFailed.String(id, strconv.Itoa(statusCode)))
 		}
 	}
-	_, statusCode, _ = deleteHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts, token, removeUser)
-	if statusCode != http.StatusOK {
-		logrus.Errorf("Failed to delete device account %s, status code %d", removeUser, statusCode)
-		return http.StatusNotFound, errors.New("Failed to delete device account " + removeUser)
+	id, status = s.getAccountDataByLabel(deviceIPAddress, authStr, removeUser, "Id")
+	if status == true {
+		_, statusCode, _ = deleteHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts, userAuthData, id)
+		if statusCode != http.StatusOK {
+			logrus.Errorf(ErrDeleteUserAccount.String(removeUser, strconv.Itoa(statusCode)))
+			return http.StatusNotFound, errors.New(ErrDeleteUserAccount.String(removeUser, strconv.Itoa(statusCode)))
+		}
+	}
+	userLoginInfo := s.devicemap[deviceIPAddress].UserLoginInfo
+	if _, found := userLoginInfo[removeUser]; found {
+		delete(s.devicemap[deviceIPAddress].UserLoginInfo, removeUser)
+		s.updateDataFile(deviceIPAddress)
 	}
 	return statusCode, nil
 }
 
-func (s *Server) setSessionService(deviceIPAddress string, token string, status bool, sessionTimeout uint64) (statusNum int, err error) {
+func (s *Server) setSessionService(deviceIPAddress, authStr string, status bool, sessionTimeout uint64) (statusNum int, err error) {
 	var statusCode int
-	if len(token) != 0 {
-		userName := s.getUserByToken(deviceIPAddress, token)
-		if s.getUserStatus(deviceIPAddress, token, userName) == false {
-			logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-			return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this device")
+	//sessionTimeout is 0 means disable session timeout
+	if sessionTimeout != 0 {
+		//set sessionTimeout and over RfSessionTimeOut
+		if sessionTimeout < RfSessionTimeOut {
+			logrus.Errorf(ErrSessionTimeout.String(strconv.Itoa(RfSessionTimeOut)))
+			return http.StatusBadRequest, errors.New(ErrSessionTimeout.String(strconv.Itoa(RfSessionTimeOut)))
 		}
-		if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-			logrus.Errorf("The user account %s does not login in this device %s", userName, deviceIPAddress)
-			return http.StatusBadRequest, errors.New("The user account " + userName + " is not available in device")
-		}
-		userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-		if userPrivilege != UserPrivileges[0] {
-			logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
-			return http.StatusBadRequest, errors.New("The user " + userName + " privilege is not administrator")
-		}
-	}
-	if sessionTimeout < RfSessionTimeOut {
-		logrus.Errorf("The seesion timeout has to over %d", RfSessionTimeOut)
-		return http.StatusBadRequest, errors.New("The seesion timeout has to over " + strconv.Itoa(RfSessionTimeOut))
 	}
 	ServiceInfo := map[string]interface{}{}
 	ServiceInfo["ServiceEnabled"] = status
 	ServiceInfo["SessionTimeout"] = sessionTimeout
-	_, _, statusCode, _ = postHTTPDataByRfAPI(deviceIPAddress, RfSessionService, token, ServiceInfo)
+	userAuthData := s.getUserAuthData(deviceIPAddress, authStr)
+	if authStr != "" {
+		if (userAuthData == userAuth{}) {
+			logrus.Errorf(ErrUserAuthNotFound.String())
+			return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
+		}
+	}
+	_, _, statusCode, _ = patchHTTPDataByRfAPI(deviceIPAddress, RfSessionService, userAuthData, ServiceInfo)
 	if statusCode != http.StatusOK {
 		switch statusCode {
-		case http.StatusUnauthorized:
-			logrus.Errorf("The session service was enabled on the device %s. Please login device first and assige the token.", deviceIPAddress)
-			return statusCode, errors.New("The session service was enabled on device " + deviceIPAddress +
-				". Please login device first and assige the token.")
+		case http.StatusMethodNotAllowed:
+			logrus.Errorf(ErrSessionExists.String(deviceIPAddress))
+			return statusCode, errors.New(ErrSessionExists.String(deviceIPAddress))
 		default:
-			logrus.Errorf("The session service was enabled on device %s, status code %d", deviceIPAddress, statusCode)
-			return statusCode, errors.New("The session service was enabled on device " + deviceIPAddress +
-				". The Status Code is " + strconv.Itoa(statusCode))
+			logrus.Errorf(ErrSessionFailed.String(deviceIPAddress, strconv.Itoa(statusCode)))
+			return statusCode, errors.New(ErrSessionFailed.String(deviceIPAddress, strconv.Itoa(statusCode)))
 		}
 	}
 	return statusCode, nil
 }
 
-func (s *Server) loginDevice(deviceIPAddress string, token string, loginUserName string, loginPassword string) (RetToken string, statusNum int, err error) {
+func (s *Server) loginDevice(deviceIPAddress, loginUserName, loginPassword string, authType bool) (RetToken string, statusNum int, err error) {
 	var statusCode int
-	serviceEnabled := strings.Join(s.getDeviceData(deviceIPAddress, RfSessionService, token, 1, "ServiceEnabled"), " ")
-	if len(serviceEnabled) != 0 && serviceEnabled == "false" {
-		logrus.Errorf("The session service does not enable yet, device %s", deviceIPAddress)
-		return "", http.StatusBadRequest, errors.New("The session service does not enable yet, device " + deviceIPAddress)
-	}
-	if len(token) != 0 {
-		userName := s.getUserByToken(deviceIPAddress, token)
-		if s.getUserStatus(deviceIPAddress, token, userName) == false {
-			logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-			return "", http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this device")
+	defer func() {
+		if err != nil {
+			delete(s.devicemap[deviceIPAddress].UserLoginInfo, loginUserName)
 		}
+	}()
+	userAuthData := s.updateAuthData(deviceIPAddress, "", loginUserName, loginPassword, authType)
+	if (userAuthData == userAuth{}) {
+		logrus.Errorf(ErrUserAuthNotFound.String())
+		return "", statusNum, errors.New(ErrUserAuthNotFound.String())
 	}
-	userLoginInfo := map[string]interface{}{}
-	userLoginInfo["UserName"] = loginUserName
-	userLoginInfo["Password"] = loginPassword
-	response, _, statusCode, _ := postHTTPDataByRfAPI(deviceIPAddress, RfSessionServiceSessions, token, userLoginInfo)
-	if statusCode != http.StatusCreated {
-		logrus.Errorf("Failed to login device, status code %d", statusCode)
-		return "", statusCode, errors.New("The user " + loginUserName + " failed to login this device " + deviceIPAddress)
-	}
-	if response != nil {
-		RetToken = strings.Join(response.Header["X-Auth-Token"], " ")
-		if len(RetToken) != 0 {
-			s.devicemap[deviceIPAddress].UserLoginInfo[loginUserName] = RetToken
-			s.updateDataFile(deviceIPAddress)
-		}
-	}
-	return RetToken, statusCode, nil
-}
-
-func (s *Server) logoutDevice(deviceIPAddress string, token string, logoutUserName string) (statusNum int, err error) {
-	var statusCode int
-	if s.getLoginStatus(deviceIPAddress, token, logoutUserName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", logoutUserName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + logoutUserName + " does not login to this device")
-	}
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this device")
-	}
-	if s.getUserStatus(deviceIPAddress, token, logoutUserName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", logoutUserName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + logoutUserName + " is not available in device")
-	}
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " is not available in device")
-	}
-	logoutUserPrivilege := s.getUserPrivilege(deviceIPAddress, token, logoutUserName)
-	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != UserPrivileges[0] {
-		if (userPrivilege == UserPrivileges[1] && logoutUserPrivilege == UserPrivileges[0]) ||
-			(userPrivilege == UserPrivileges[2] && logoutUserPrivilege != UserPrivileges[2]) {
-			logrus.Errorf("The user %s privilege could not logout the other higher user from this device %s", userName, deviceIPAddress)
-			return http.StatusBadRequest, errors.New("The user " + userName + " privilege could not logout the other higher user")
-		}
-	}
-	sessions := s.getDeviceData(deviceIPAddress, RfSessionServiceSessions, token, 2, "@odata.id")
-	if sessions != nil {
-		for _, session := range sessions {
-			if user := strings.Join(s.getDeviceData(deviceIPAddress, session, token, 1, "UserName"), " "); user == logoutUserName {
-				id := strings.Join(s.getDeviceData(deviceIPAddress, session, token, 1, "Id"), " ")
-				_, statusCode, _ := deleteHTTPDataByRfAPI(deviceIPAddress, RfSessionServiceSessions, token, id)
-				if statusCode != http.StatusOK {
-					logrus.Errorf("Failed to delete login session id %s, status code %d", id, statusCode)
-					return statusCode, errors.New("Failed to delete login session id " + id)
-				}
+	if userAuthData.AuthType == authTypeEnum.TOKEN {
+		serviceData, statusNum, err := s.getDeviceData(deviceIPAddress, RfSessionService, loginUserName, 1, "ServiceEnabled")
+		if statusNum == http.StatusOK {
+			//check another http error then return
+			if err != nil {
+				return "", statusNum, err
+			}
+			serviceEnabled := strings.Join(serviceData, " ")
+			if len(serviceEnabled) != 0 && serviceEnabled == "false" {
+				logrus.Errorf(ErrSessionNotSet.String(deviceIPAddress))
+				return "", http.StatusBadRequest, errors.New(ErrSessionNotSet.String(deviceIPAddress))
 			}
 		}
+		userLoginInfo := map[string]interface{}{}
+		userLoginInfo["UserName"] = loginUserName
+		userLoginInfo["Password"] = loginPassword
+		response, _, statusCode, err := postHTTPDataByRfAPI(deviceIPAddress, RfSessionServiceSessions, userAuthData, userLoginInfo)
+		switch statusCode {
+		//Now, check the session service has enabled or not
+		case http.StatusCreated:
+			if response != nil {
+				if authType == false {
+					RetToken = strings.Join(response.Header["X-Auth-Token"], " ")
+					userAuthData.Token = RetToken
+				}
+				s.devicemap[deviceIPAddress].UserLoginInfo[loginUserName] = userAuthData
+				return RetToken, statusCode, err
+			} else {
+				logrus.Errorf(ErrLoginFailed.String(strconv.Itoa(statusCode)))
+				return "", statusCode, errors.New(ErrLoginFailed.String(strconv.Itoa(statusCode)))
+			}
+		default:
+			switch statusCode {
+			case http.StatusUnauthorized:
+				logrus.Errorf(ErrUserAuthNotFound.String(strconv.Itoa(statusCode)))
+				return "", statusCode, errors.New(ErrUserAuthNotFound.String(strconv.Itoa(statusCode)))
+			default:
+				logrus.Errorf(ErrLoginFailed.String(strconv.Itoa(statusCode)))
+				return "", statusCode, errors.New(ErrLoginFailed.String(strconv.Itoa(statusCode)))
+			}
+		}
+	} else if userAuthData.AuthType == authTypeEnum.BASIC {
+		authStr := s.getAuthStrByUser(deviceIPAddress, loginUserName)
+		if _, AccountStatus := s.getAccountDataByLabel(deviceIPAddress, authStr, loginUserName, "Id"); AccountStatus == true {
+			if status, errors := s.deleteDeviceSession(deviceIPAddress, authStr, loginUserName, userAuthData); errors != nil {
+				return "", status, errors
+			}
+			s.updateDataFile(deviceIPAddress)
+			s.devicemap[deviceIPAddress].QueryUser = userAuthData
+		} else {
+			logrus.Errorf(ErrUserAuthNotFound.String(strconv.Itoa(statusCode)))
+			return "", http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String(strconv.Itoa(statusCode)))
+		}
+		return loginUserName, statusCode, err
 	}
-	userLoginInfo := s.devicemap[deviceIPAddress].UserLoginInfo
-	if len(userLoginInfo[logoutUserName]) != 0 {
+	return "", statusCode, err
+}
+
+func (s *Server) logoutDevice(deviceIPAddress, authStr, logoutUserName string) (statusNum int, err error) {
+	var statusCode int
+	userAuthData := s.getUserAuthData(deviceIPAddress, authStr)
+	if (userAuthData == userAuth{}) {
+		logrus.Errorf(ErrUserAuthNotFound.String())
+		return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
+	}
+	logoutUserAuthData := s.getUserAuthData(deviceIPAddress, logoutUserName)
+	if (logoutUserAuthData == userAuth{}) {
+		logrus.Errorf(ErrUserAuthNotFound.String())
+		return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
+	}
+	if logoutUserAuthData.AuthType == authTypeEnum.TOKEN {
+		if statusCode, err = s.deleteDeviceSession(deviceIPAddress, authStr, logoutUserName, userAuthData); err != nil {
+			return statusCode, err
+		}
+		userLoginInfo := s.devicemap[deviceIPAddress].UserLoginInfo
 		if _, found := userLoginInfo[logoutUserName]; found {
 			delete(s.devicemap[deviceIPAddress].UserLoginInfo, logoutUserName)
 			s.updateDataFile(deviceIPAddress)
 		}
+	} else {
+		return http.StatusBadRequest, errors.New(ErrUserIsBasicAuth.String())
 	}
-	return statusCode, nil
+	return statusCode, err
 }
 
-func (s *Server) changeDeviceUserPassword(deviceIPAddress string, token string, chgUsername string, chgPassword string) (statusNum int, err error) {
-	if s.getUserStatus(deviceIPAddress, token, chgUsername) == false {
-		logrus.Errorf("The user account %s is not available in device %s", chgUsername, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + chgUsername + " is not available in device")
-	}
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " does not login to this device")
-	}
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user account " + userName + " is not available in device")
-	}
-	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != UserPrivileges[0] {
-		logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
-		return http.StatusBadRequest, errors.New("The user " + userName + " privilege is not administrator")
-	}
+func (s *Server) changeDeviceUserPassword(deviceIPAddress, authStr, chgUsername, chgPassword string) (statusNum int, err error) {
+	var statusCode int
 	pw := map[string]interface{}{}
 	pw["Password"] = chgPassword
-	_, _, statusCode, _ := patchHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts+chgUsername, token, pw)
-	if statusCode != http.StatusOK {
-		logrus.Errorf("Failed to change device user (%s) password, status code %d", chgUsername, statusCode)
+	userAuthData := s.getUserAuthData(deviceIPAddress, authStr)
+	if (userAuthData == userAuth{}) {
+		logrus.Errorf(ErrUserAuthNotFound.String())
+		return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
+	}
+	id, status := s.getAccountDataByLabel(deviceIPAddress, authStr, chgUsername, "Id")
+	if status == true {
+		_, _, statusCode, _ = patchHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts+id, userAuthData, pw)
+		if statusCode != http.StatusOK {
+			logrus.Errorf(ErrChangePwdFailed.String(chgUsername, strconv.Itoa(statusCode)))
+			return statusCode, errors.New(ErrChangePwdFailed.String(chgUsername, strconv.Itoa(statusCode)))
+		} else {
+			userAuthData.Password = chgPassword
+			s.devicemap[deviceIPAddress].UserLoginInfo[chgUsername] = userAuthData
+			s.updateDataFile(deviceIPAddress)
+		}
 	}
 	return statusCode, nil
 }
 
-func (s *Server) listDeviceAccount(deviceIPAddress string, token string) (deviceAccounts map[string]string, statusNum int, err error) {
-	userName := s.getUserByToken(deviceIPAddress, token)
-	if s.getLoginStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s does not login to this device %s", userName, deviceIPAddress)
-		return nil, http.StatusNotFound, errors.New("The user account " + userName + " does not login to this device")
-	}
-	if s.getUserStatus(deviceIPAddress, token, userName) == false {
-		logrus.Errorf("The user account %s is not available in device %s", userName, deviceIPAddress)
-		return nil, http.StatusNotFound, errors.New("The user account " + userName + " is not available in device")
-	}
-	userPrivilege := s.getUserPrivilege(deviceIPAddress, token, userName)
-	if userPrivilege != UserPrivileges[0] {
-		logrus.Errorf("The user %s privilege is not administrator, device %s", userName, deviceIPAddress)
-		return nil, http.StatusBadRequest, errors.New("The user " + userName + " privilege is not administrator")
-	}
+func (s *Server) listDeviceAccount(deviceIPAddress, authStr string) (deviceAccounts map[string]string, statusNum int, err error) {
 	deviceAccounts = make(map[string]string)
-	userLists := s.getDeviceData(deviceIPAddress, RfAccountsServiceAccounts, token, 2, "@odata.id")
+	userAuthData := s.getUserAuthData(deviceIPAddress, authStr)
+	if (userAuthData == userAuth{}) {
+		logrus.Errorf(ErrUserAuthNotFound.String())
+		return nil, http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
+	}
+	userLists, _, _ := s.getDeviceData(deviceIPAddress, RfAccountsServiceAccounts, authStr, 2, "@odata.id")
 	for _, userAPI := range userLists {
-		user := strings.Join(s.getDeviceData(deviceIPAddress, userAPI, token, 1, "UserName"), " ")
-		token := s.devicemap[deviceIPAddress].UserLoginInfo[user]
-		deviceAccounts[user] = token
+		userData, _, _ := s.getDeviceData(deviceIPAddress, userAPI, authStr, 1, "UserName")
+		if userData != nil {
+			user := strings.Join(userData, " ")
+			if user != "" {
+				if userAuthData = s.getUserAuthData(deviceIPAddress, user); (userAuthData == userAuth{}) {
+					if userData, _, _ = s.getDeviceData(deviceIPAddress, userAPI, authStr, 1, "Password"); userData != nil {
+						deviceAccounts[user] = userData[0]
+					} else {
+						deviceAccounts[user] = ""
+					}
+				} else {
+					if userAuthData.AuthType == authTypeEnum.TOKEN {
+						deviceAccounts[user] = s.devicemap[deviceIPAddress].UserLoginInfo[user].Token
+					} else if userAuthData.AuthType == authTypeEnum.BASIC {
+						deviceAccounts[user] = s.devicemap[deviceIPAddress].UserLoginInfo[user].Password
+					}
+				}
+			}
+		}
 	}
 	return deviceAccounts, http.StatusOK, nil
 }

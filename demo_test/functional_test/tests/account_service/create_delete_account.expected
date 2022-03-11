@@ -18,7 +18,6 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
-ip1:port1 set ok!
 accounts list : account:{key:"admin" value:"admin_token"}
 admin_1 created
 operator created

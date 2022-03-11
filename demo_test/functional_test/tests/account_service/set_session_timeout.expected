@@ -18,11 +18,10 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
+The session service was enabled on the device ip1:port1. Please login device first and assige the token
 ip1:port1 set ok!
-The session service was enabled on device 172.17.8.40:8888. The Status Code is 405
-The seesion timeout has to over 300
 ip1:port1 set ok!
-The user account admin is not available in device
-The user account admin is not available in device
+The user account does not login to this device
+The user account does not login to this device
 ip1:port1 set ok!
 ip1:port1 detached

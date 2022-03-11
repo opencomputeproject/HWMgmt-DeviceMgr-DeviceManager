@@ -20,11 +20,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-./dm attach $1:$2:120
-./dm setsessionservice $1:$2:"":true:300
-admin_token=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
-./dm createaccount $1:$2:$admin_token:admin_1:admin_1:Administrator
-admin_1_token=`./dm logindevice $1:$2:admin_1:admin_1| cut -d' ' -f4`
+./dm attach $1:$2:120:1:false
+./dm setsessionservice $1:$2:"":true:300 2>&1 > /dev/null
+admin_token=`./dm logindevice $1:$2:$5:$6:false| cut -d' ' -f4`
+./dm createaccount $1:$2:$admin_token:admin_1:0penBmc:Administrator
+admin_1_token=`./dm logindevice $1:$2:admin_1:0penBmc:false| cut -d' ' -f4`
 ./dm logoutdevice $1:$2:$admin_1_token:$5
 ret=`./dm deviceaccess $1:$2:$admin_1_token:GET:/redfish/v1/SessionService/Sessions:""`
 userid1=`echo $ret|awk -F[/}] '{print $13}'|awk -F"\"" '{print $1}'`
@@ -36,7 +36,7 @@ ret=`./dm deviceaccess $1:$2:$admin_1_token:GET:/redfish/v1/SessionService/Sessi
 userId1=`echo $ret|awk -F[{}] '{print $3}'|cut -d'/' -f6|awk -F"\"" '{print $1}'`
 userId2=`echo $ret|awk -F[{}] '{print $5}'|cut -d'/' -f6|awk -F"\"" '{print $1}'`
 echo $ret
-admin_token=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
+admin_token=`./dm logindevice $1:$2:$5:$6:false| cut -d' ' -f4`
 ./dm deleteaccount $1:$2:$admin_token:admin_1
 ./dm detach $1:$2:$admin_token
 

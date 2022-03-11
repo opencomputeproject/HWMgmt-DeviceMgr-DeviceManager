@@ -18,13 +18,12 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
-ip1:port1 set ok!
 admin_1 created
 operator created
 readonly created
-The user operator privilege could not logout the other higher user
-The user readonly privilege could not logout the other higher user
-The user readonly privilege could not logout the other higher user
+The user privilege could not configure this action than other higher user
+The user privilege could not configure this action than other higher user
+The user privilege could not configure this action than other higher user
 admin_1 logouted
 readonly logouted
 operator logouted

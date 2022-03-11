@@ -18,8 +18,8 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
-ip1:port1 set ok!
 Port number  needs to be an integer
 Invalid IP address 192.168.4
 Port number 8a needs to be an integer
+[ForceOff GracefulShutdown GracefulRestart ForceRestart]
 ip1:port1 detached
