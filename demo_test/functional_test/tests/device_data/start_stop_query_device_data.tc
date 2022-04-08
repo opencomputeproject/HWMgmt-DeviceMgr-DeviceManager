@@ -21,15 +21,23 @@
 # under the License.
 
 QueryDuration=10
-./dm attach $1:$2:$QueryDuration
-./dm setsessionservice $1:$2:"":true:300
-token=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
+chassisRf="/redfish/v1/Chassis"
+./dm attach $1:$2:$QueryDuration:1:false
+./dm setsessionservice $1:$2:"":true:300 2>&1 > /dev/null
+token=`./dm logindevice $1:$2:$5:$6:false| cut -d' ' -f4`
+rfData=`./dm getpollingrflist $1:$2:$token|grep chassisRf`
+if [ -z "$rfData" ]; then
+  ./dm addpollingrfapi $1:$2:$token:$chassisRf 2>&1 > /dev/null
+fi
 ./dm startquerydevice $1:$2:$token
 sleep $(expr $QueryDuration + 2)
-data=`./dm getdevicedata $1:$2:$token:/redfish/v1/Chassis`
+data=`./dm getdevicedata $1:$2:$token:$chassisRf`
 echo $data
 timeStamp=`echo $data | awk -F'[{,]' '{print $2}'`
 ./dm stopquerydevice $1:$2:$token
+if [ -z "$rfData" ]; then
+  ./dm removepollingrfapi $1:$2:$token:$chassisRf 2>&1 > /dev/null
+fi
 ./dm detach $1:$2:$token
 
 sed -e '/^\/\//d' -e 's/ip1/'${1}'/g; s/port1/'${2}'/g; s/ip2/'${3}'/g; s/port2/'${4}'/g; s/timeStamp/'"${timeStamp}"'/g' "$9".expected > "$9".e

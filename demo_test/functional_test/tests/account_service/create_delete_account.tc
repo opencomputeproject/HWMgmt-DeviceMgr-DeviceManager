@@ -20,19 +20,19 @@
 # specific language governing permissions and limitations
 # under the License.
 
-./dm attach $1:$2:120
-./dm setsessionservice $1:$2:"":true:300
-admin_token=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
+./dm attach $1:$2:120:1:false
+./dm setsessionservice $1:$2:"":true:300 2>&1 > /dev/null
+admin_token=`./dm logindevice $1:$2:$5:$6:false| cut -d' ' -f4`
 account_data=`./dm deviceaccountslist $1:$2:$admin_token|sed 's/\( \)*/\1/g'`
 echo $account_data
-./dm createaccount $1:$2:$admin_token:admin_1:admin_1:Administrator
-./dm createaccount $1:$2:$admin_token:operator:operator:Operator
-./dm createaccount $1:$2:$admin_token:readonly:readonly:ReadOnly
+./dm createaccount $1:$2:$admin_token:admin_1:0penBmc:Administrator
+./dm createaccount $1:$2:$admin_token:operator:0penBmc:Operator
+./dm createaccount $1:$2:$admin_token:readonly:0penBmc:ReadOnly
 account_data=`./dm deviceaccountslist $1:$2:$admin_token|sed 's/\( \)*/\1/g'`
 echo $account_data
-admin_1_token=`./dm logindevice $1:$2:admin_1:admin_1| cut -d' ' -f4`
-operator_token=`./dm logindevice $1:$2:operator:operator| cut -d' ' -f4`
-readonly_token=`./dm logindevice $1:$2:readonly:readonly| cut -d' ' -f4`
+admin_1_token=`./dm logindevice $1:$2:admin_1:0penBmc:false| cut -d' ' -f4`
+operator_token=`./dm logindevice $1:$2:operator:0penBmc:false| cut -d' ' -f4`
+readonly_token=`./dm logindevice $1:$2:readonly:0penBmc:false| cut -d' ' -f4`
 account_data=`./dm deviceaccountslist $1:$2:$admin_token|sed 's/\( \)*/\1/g'`
 echo $account_data
 ./dm deleteaccount $1:$2:$admin_token:readonly

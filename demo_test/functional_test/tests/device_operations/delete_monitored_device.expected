@@ -18,8 +18,6 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 ip2:port2 attached
-ip1:port1 set ok!
-ip2:port2 set ok!
 ip1:port1 detached
 ip2:port2 detached
-Device ip1:port1 not found
+This device is not registered

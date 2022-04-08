@@ -20,15 +20,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-./dm attach $1:$2:120 $3:$4:100
-./dm setsessionservice $1:$2:"":true:300
-token_1=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
-./dm setsessionservice $3:$4:"":true:300
-token_2=`./dm logindevice $3:$4:$7:$8| cut -d' ' -f4`
-./dm attach $1:$2:120
-./dm attach $1:88:120
-./dm attach $1:"":88
+./dm attach $1:$2:120:1:false $3:$4:100:1:false
+./dm setsessionservice $1:$2:"":true:300 2>&1 > /dev/null
+token_1=`./dm logindevice $1:$2:$5:$6:false| cut -d' ' -f4`
+./dm setsessionservice $3:$4:"":true:300 2>&1 > /dev/null
+token_2=`./dm logindevice $3:$4:$7:$8:false| cut -d' ' -f4`
+./dm attach $1:$2:120:1:false
+./dm attach $1:88:120:1:false
+./dm attach $1:"":88:1:false
 ./dm detach $1:$2:$token_1
 ./dm detach $3:$4:$token_2
 
-sed -e '/^\/\//d' -e 's/ip1/'${1}'/g; s/port1/'${2}'/g; s/ip2/'${3}'/g; s/port2/'${4}'/g; s/token_1/'${token_1}'/g; s/token_2/'${token_2}'/g' "$9".expected > "$9".e
+sed -e '/^\/\//d' -e 's/ip1/'${1}'/g; s/port1/'${2}'/g; s/ip2/'${3}'/g; s/port2/'${4}'/g; s/token_1/'${token_1}'/g; s/token_2/'${token_2}'/g; s/ipPort/'${ipPort}'/g' "$9".expected > "$9".e

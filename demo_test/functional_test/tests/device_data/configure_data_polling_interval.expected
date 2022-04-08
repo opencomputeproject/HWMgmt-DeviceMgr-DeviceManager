@@ -18,8 +18,7 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
-ip1:port1 set ok!
 
-The frequency is invalid
-The frequency is invalid
+
+The frequency value is invalid
 ip1:port1 detached

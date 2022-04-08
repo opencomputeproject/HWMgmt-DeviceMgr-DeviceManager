@@ -23,44 +23,49 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
-	flags "github.com/jessevdk/go-flags"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
+
+	flags "github.com/jessevdk/go-flags"
+	logrus "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 //GlobalConfigSpec ...
 type GlobalConfigSpec struct {
 	Kafka    string `yaml:"kafka"`
 	Local    string `yaml:"local"`
-	Importer string `yaml:"importer"`
+	Manager  string `yaml:"manager"`
+	Topic    string `yaml:"topic"`
+	Consumer bool   `yaml:"consumer"`
 }
 
 //CharReplacer ...
 var (
 	CharReplacer = strings.NewReplacer("\\t", "\t", "\\n", "\n")
-
 	//GlobalConfig ...
 	GlobalConfig = GlobalConfigSpec{
 		Kafka:    "kafka_ip.sh",
 		Local:    ":9999",
-		Importer: "localhost:31085",
+		Manager:  "localhost:31085",
+		Topic:    managerTopic,
+		Consumer: false,
 	}
-
-	GlobalCommandOptions = make(map[string]map[string]string)
-
 	GlobalOptions struct {
 		Config   string `short:"c" long:"config" env:"PROXYCONFIG" value-name:"FILE" default:"" description:"Location of proxy config file"`
 		Kafka    string `short:"k" long:"kafka" default:"" value-name:"SERVER:PORT" description:"IP/Host and port of Kafka"`
-		Importer string `short:"i" long:"importer" default:"" value-name:"SERVER:PORT" description:"IP/Host and port of Importer"`
+		Manager  string `short:"i" long:"manager" default:"" value-name:"SERVER:PORT" description:"IP/Host and port of Manager"`
 		Local    string `short:"l" long:"local" default:"" value-name:"SERVER:PORT" description:"IP/Host and port to listen on"`
+		Topic    string `short:"t" long:"topic" default:"manager" value-name:"string" description:"Receiving Kafka message by the topic"`
+		Consumer bool   `short:"s" long:"consumer" value-name:"" description:"Trun on/off Kafka Consumer"`
 	}
-
 	Debug = log.New(os.Stdout, "DEBUG: ", 0)
 	Info  = log.New(os.Stdout, "INFO: ", 0)
 	Warn  = log.New(os.Stderr, "WARN: ", 0)
@@ -75,7 +80,6 @@ func ParseCommandLine() {
 	if err != nil {
 		panic(err)
 	}
-
 	_, err = parser.ParseArgs(os.Args[1:])
 	if err != nil {
 		_, ok := err.(*flags.Error)
@@ -86,9 +90,7 @@ func ParseCommandLine() {
 				os.Exit(0)
 			}
 		}
-
 		fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err.Error())
-
 		os.Exit(1)
 	}
 }
@@ -101,9 +103,8 @@ func ProcessGlobalOptions() {
 			Warn.Printf("Unable to discover the user's home directory: %s", err)
 			home = "~"
 		}
-		GlobalOptions.Config = filepath.Join(home, ".redfish-importer", "demotest-config")
+		GlobalOptions.Config = filepath.Join(home, ".redfish-manager", "demotest-config")
 	}
-
 	if info, err := os.Stat(GlobalOptions.Config); err == nil && !info.IsDir() {
 		configFile, err := ioutil.ReadFile(GlobalOptions.Config)
 		if err != nil {
@@ -115,21 +116,42 @@ func ProcessGlobalOptions() {
 				GlobalOptions.Config, err.Error())
 		}
 	}
-
 	if GlobalOptions.Kafka != "" {
 		GlobalConfig.Kafka = GlobalOptions.Kafka
 	}
 	if GlobalOptions.Local != "" {
 		GlobalConfig.Local = GlobalOptions.Local
 	}
-	if GlobalOptions.Importer != "" {
-		GlobalConfig.Importer = GlobalOptions.Importer
+	if GlobalOptions.Manager != "" {
+		GlobalConfig.Manager = GlobalOptions.Manager
+	}
+	if GlobalOptions.Topic != "" {
+		GlobalConfig.Topic = GlobalOptions.Topic
+	}
+	if GlobalOptions.Consumer != false {
+		GlobalConfig.Consumer = GlobalOptions.Consumer
 	}
 }
 
 //ShowGlobalOptions ...
 func ShowGlobalOptions() {
 	log.Printf("Configuration:")
-	log.Printf("    Kafka: %v", GlobalConfig.Kafka)
+	if GlobalConfig.Consumer {
+		log.Printf("    Kafka: %v", GlobalConfig.Kafka)
+	}
 	log.Printf("    Listen Address: %v", GlobalConfig.Local)
+}
+
+func runCommand(program string) string {
+	cmd := exec.Command("/bin/sh", program)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		logrus.Info(err)
+		os.Exit(1)
+	}
+	results := out.String()
+	results = strings.TrimSuffix(results, "\n")
+	return results
 }

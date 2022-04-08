@@ -19,52 +19,294 @@
  * under the License.
  */
 
-// Implements global configuration for redfish importer
+// Implements global configuration for redfish manager
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
-	flags "github.com/jessevdk/go-flags"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
+
+	flags "github.com/jessevdk/go-flags"
+	logrus "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
-//GlobalConfigSpec ...
+//GlobalConfigSpec  ...
 type GlobalConfigSpec struct {
 	Kafka     string `yaml:"kafka"`
 	Local     string `yaml:"local"`
 	LocalGrpc string `yaml:"localgrpc"`
 }
 
-//CharReplacer ...
+//GlobalConfig ...
 var (
-	CharReplacer = strings.NewReplacer("\\t", "\t", "\\n", "\n")
-
 	GlobalConfig = GlobalConfigSpec{
-		Kafka:     "cord-kafka.default.svc.cluster.local:9092",
+		Kafka:     "cord-kafka-0.cord-kafka-headless.manager.svc.cluster.local:9092",
 		Local:     "0.0.0.0:8080",
 		LocalGrpc: "0.0.0.0:50051",
 	}
-
 	GlobalCommandOptions = make(map[string]map[string]string)
-
-	GlobalOptions struct {
+	GlobalOptions        struct {
 		Config    string `short:"c" long:"config" env:"PROXYCONFIG" value-name:"FILE" default:"" description:"Location of proxy config file"`
 		Kafka     string `short:"k" long:"kafka" default:"" value-name:"SERVER:PORT" description:"IP/Host and port of Kafka"`
 		Local     string `short:"l" long:"local" default:"" value-name:"SERVER:PORT" description:"IP/Host and port to listen on for http"`
 		LocalGrpc string `short:"g" long:"localgrpc" default:"" value-name:"SERVER:PORT" description:"IP/Host and port to listen on for grpc"`
 	}
-
 	Debug = log.New(os.Stdout, "DEBUG: ", 0)
 	Info  = log.New(os.Stdout, "INFO: ", 0)
 	Warn  = log.New(os.Stderr, "WARN: ", 0)
 	Error = log.New(os.Stderr, "ERROR: ", 0)
 )
+
+func addSlashToTail(data string) string {
+	lastByte := data[len(data)-1:]
+	if lastByte != "/" {
+		data = data + "/"
+	}
+	return data
+}
+
+//JSONToByte ...
+func JSONToByte(data interface{}) (retData [][]byte) {
+	marshalData, err := json.Marshal(data)
+	if err != nil {
+		return nil
+	}
+	marshalDataBytes := bytes.Split(marshalData, []byte(","))
+	for index, value := range marshalDataBytes {
+		marshalStr := bytes.Split(value, []byte(":"))
+		str1 := strings.Trim(string(marshalStr[0]), "\"{}[]")
+		str2 := strings.Trim(string(marshalStr[1]), "\"{}[]")
+		dataStr := str1 + ":" + str2
+		marshalDataBytes[index] = []byte(dataStr)
+	}
+	return marshalDataBytes
+}
+
+//getFunctionsResult ...
+func (s *Server) getFunctionsResult(function string, deviceIPAddress string, authStr string, args ...string) (statusCode int, err error) {
+	switch function {
+	case "checkIPAddress":
+		var detectDevice bool
+		if args != nil && args[0] != "" {
+			detectDevice, _ = strconv.ParseBool(args[0])
+		} else {
+			detectDevice = DefaultDetectDevice
+		}
+		if msg, ok := s.validateIPAddress(deviceIPAddress, detectDevice); !ok {
+			logrus.WithFields(logrus.Fields{
+				"IP address:port": deviceIPAddress}).Errorf(msg)
+			return http.StatusBadRequest, errors.New(msg)
+		}
+	case "checkRegistered":
+		if s.vlidateDeviceRegistered(deviceIPAddress) == false {
+			logrus.WithFields(logrus.Fields{
+				"IP address:port": deviceIPAddress}).Errorf(ErrRegistered.String())
+			return http.StatusBadRequest, errors.New(ErrRegistered.String())
+		}
+	case "checkAccount":
+		var userName, password string
+		var userAuthData userAuth
+		if args != nil && args[0] != "" {
+			userName = args[0]
+		} else {
+			userAuthData = s.getUserAuthData(deviceIPAddress, authStr)
+			if (userAuthData == userAuth{}) {
+				logrus.Errorf(ErrUserAuthNotFound.String())
+				return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
+			}
+			userName = userAuthData.UserName
+		}
+		password = ""
+		if args != nil && args[1] != "" {
+			password = args[1]
+		}
+		if userName == "" {
+			if userAuthData.AuthType != authTypeEnum.NONE { //Authentication Pass
+				logrus.Errorf(ErrUserName.String())
+				return http.StatusBadRequest, errors.New(ErrUserName.String())
+			}
+		} else {
+			if errRet := s.validateDeviceAccountData(deviceIPAddress, userName, password); errRet != "" {
+				logrus.WithFields(logrus.Fields{
+					"IP address:port": deviceIPAddress,
+					"Username":        userName,
+				}).Errorf(errRet)
+				return http.StatusBadRequest, errors.New(errRet)
+			}
+		}
+	case "loginStatus":
+		var userName string
+		var userAuthData userAuth
+		if args != nil && args[0] != "" {
+			userName = args[0]
+			userAuthData = s.getUserAuthData(deviceIPAddress, userName)
+			if (userAuthData == userAuth{}) {
+				logrus.Errorf(ErrUserAuthNotFound.String())
+				return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
+			}
+			if userAuthData.AuthType == authTypeEnum.BASIC {
+				break
+			}
+		} else {
+			userAuthData = s.getUserAuthData(deviceIPAddress, authStr)
+			if (userAuthData == userAuth{}) {
+				logrus.Errorf(ErrUserAuthNotFound.String())
+				return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
+			}
+			if userAuthData.AuthType == authTypeEnum.BASIC {
+				break
+			} else {
+				userName = userAuthData.UserName
+			}
+		}
+		if userName == "" {
+			if userAuthData.AuthType != authTypeEnum.NONE { //Authentication Pass
+				logrus.Errorf(ErrUserName.String())
+				return http.StatusBadRequest, errors.New(ErrUserName.String())
+			}
+		} else {
+			if s.getLoginStatus(deviceIPAddress, authStr, userName) == false {
+				logrus.WithFields(logrus.Fields{
+					"IP address:port": deviceIPAddress,
+					"Username":        userName,
+				}).Errorf(ErrUserLogin.String())
+				return http.StatusBadRequest, errors.New(ErrUserLogin.String())
+			}
+		}
+	case "userStatus":
+		var userName string
+		var userAuthData userAuth
+		if args != nil && args[0] != "" {
+			userName = args[0]
+		} else {
+			userAuthData = s.getUserAuthData(deviceIPAddress, authStr)
+			if (userAuthData == userAuth{}) {
+				logrus.Errorf(ErrUserAuthNotFound.String())
+				return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
+			}
+			userName = userAuthData.UserName
+		}
+		if userName == "" {
+			if userAuthData.AuthType != authTypeEnum.NONE { //Authentication Pass
+				logrus.Errorf(ErrUserName.String())
+				return http.StatusBadRequest, errors.New(ErrUserName.String())
+			}
+		} else {
+			if s.getUserStatus(deviceIPAddress, authStr, userName) == false {
+				logrus.WithFields(logrus.Fields{
+					"IP address:port": deviceIPAddress,
+					"Username":        userName,
+				}).Errorf(ErrUserStatus.String())
+				return http.StatusBadRequest, errors.New(ErrUserStatus.String())
+			}
+		}
+	case "userPrivilegeAdmin":
+		var userName string
+		var userAuthData userAuth
+		if args != nil && args[0] != "" {
+			userName = args[0]
+		} else {
+			userAuthData = s.getUserAuthData(deviceIPAddress, authStr)
+			if (userAuthData == userAuth{}) {
+				logrus.Errorf(ErrUserAuthNotFound.String())
+				return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
+			}
+			userName = userAuthData.UserName
+		}
+		if userName == "" {
+			if userAuthData.AuthType != authTypeEnum.NONE { //Authentication Pass
+				logrus.Errorf(ErrUserName.String())
+				return http.StatusBadRequest, errors.New(ErrUserName.String())
+			}
+		} else {
+			userPrivilege := s.getUserPrivilege(deviceIPAddress, authStr, userName)
+			defineUserPrivilege := s.getDefineUserPrivilege(deviceIPAddress, authStr)[0]
+			if userPrivilege != defineUserPrivilege {
+				logrus.WithFields(logrus.Fields{
+					"IP address:port":        deviceIPAddress,
+					"Username":               userName,
+					"Privilege":              userPrivilege,
+					"Defined User Privilege": defineUserPrivilege,
+				}).Errorf(ErrUserAdmin.String())
+				return http.StatusBadRequest, errors.New(ErrUserAdmin.String())
+			}
+		}
+	case "userPrivilegeByUser":
+		var userName string
+		var userAuthData userAuth
+		if args != nil && args[0] != "" {
+			userName = args[0]
+		} else {
+			userAuthData := s.getUserAuthData(deviceIPAddress, authStr)
+			if (userAuthData == userAuth{}) {
+				logrus.Errorf(ErrUserAuthNotFound.String())
+				return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
+			}
+			userName = userAuthData.UserName
+		}
+		if userName == "" {
+			if userAuthData.AuthType != authTypeEnum.NONE { //Authentication Pass
+				logrus.Errorf(ErrUserName.String())
+				return http.StatusBadRequest, errors.New(ErrUserName.String())
+			}
+		} else {
+			TargetUserPrivilege := s.getUserPrivilege(deviceIPAddress, authStr, args[1])
+			userPrivilege := s.getUserPrivilege(deviceIPAddress, authStr, userName)
+			privilege := s.getDefineUserPrivilege(deviceIPAddress, authStr)
+			if userPrivilege != privilege[0] {
+				if (userPrivilege == privilege[1] && TargetUserPrivilege == privilege[0]) ||
+					(userPrivilege == privilege[2] && TargetUserPrivilege != privilege[2]) {
+					logrus.WithFields(logrus.Fields{
+						"IP address:port": deviceIPAddress,
+						"Username":        userName,
+					}).Errorf(args[2])
+					return http.StatusBadRequest, errors.New(args[2])
+				}
+			}
+		}
+	case "userPrivilegeOnlyUsers":
+		var userName string
+		var userAuthData userAuth
+		if args != nil && args[0] != "" {
+			userName = args[0]
+		} else {
+			userAuthData := s.getUserAuthData(deviceIPAddress, authStr)
+			if (userAuthData == userAuth{}) {
+				logrus.Errorf(ErrUserAuthNotFound.String())
+				return http.StatusBadRequest, errors.New(ErrUserAuthNotFound.String())
+			}
+			userName = userAuthData.UserName
+		}
+		if userName == "" {
+			if userAuthData.AuthType != authTypeEnum.NONE { //Authentication Pass
+				logrus.Errorf(ErrUserName.String())
+				return http.StatusBadRequest, errors.New(ErrUserName.String())
+			}
+		} else {
+			userPrivilege := s.getUserPrivilege(deviceIPAddress, authStr, userName)
+			privilege := s.getDefineUserPrivilege(deviceIPAddress, authStr)
+			if userPrivilege == privilege[2] {
+				logrus.WithFields(logrus.Fields{
+					"IP address:port": deviceIPAddress,
+					"Username":        userName,
+				}).Errorf(args[1])
+				return http.StatusBadRequest, errors.New(args[1])
+			}
+		}
+	}
+	return
+}
 
 //ParseCommandLine ...
 func ParseCommandLine() {
@@ -74,7 +316,6 @@ func ParseCommandLine() {
 	if err != nil {
 		panic(err)
 	}
-
 	_, err = parser.ParseArgs(os.Args[1:])
 	if err != nil {
 		_, ok := err.(*flags.Error)
@@ -85,9 +326,7 @@ func ParseCommandLine() {
 				os.Exit(0)
 			}
 		}
-
 		fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err.Error())
-
 		os.Exit(1)
 	}
 }
@@ -100,9 +339,8 @@ func ProcessGlobalOptions() {
 			Warn.Printf("Unable to discover the user's home directory: %s", err)
 			home = "~"
 		}
-		GlobalOptions.Config = filepath.Join(home, ".redfish-importer", "config")
+		GlobalOptions.Config = filepath.Join(home, ".redfish-manager", "config")
 	}
-
 	if info, err := os.Stat(GlobalOptions.Config); err == nil && !info.IsDir() {
 		configFile, err := ioutil.ReadFile(GlobalOptions.Config)
 		if err != nil {
@@ -114,7 +352,6 @@ func ProcessGlobalOptions() {
 				GlobalOptions.Config, err.Error())
 		}
 	}
-
 	if GlobalOptions.Kafka != "" {
 		GlobalConfig.Kafka = GlobalOptions.Kafka
 	}

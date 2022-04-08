@@ -18,7 +18,6 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
-ip1:port1 set ok!
-The user account  does not login to this deivce
+The user authentication data does not found
 ip1:port1 detached
-Device ip1:port1 not found
+This device is not registered
