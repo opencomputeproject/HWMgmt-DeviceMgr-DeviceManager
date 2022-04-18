@@ -18,12 +18,11 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
-ip1:port1 set ok!
 admin_1 created
 {"@odata.context":"/redfish/v1/$metadata#AccountService.AccountService","@odata.id":"/redfish/v1/AccountService/Accounts","@odata.type":"#ManagerAccountCollection.ManagerAccountCollection","Members":[{"@odata.id":"/redfish/v1/AccountService/Accounts/admin"},{"@odata.id":"/redfish/v1/AccountService/Accounts/admin_1"}],"Members@odata.count":2,"Name":"Accounts Collection"}
 
 {"@odata.context":"/redfish/v1/$metadata#AccountService.AccountService","@odata.id":"/redfish/v1/AccountService/Accounts","@odata.type":"#ManagerAccountCollection.ManagerAccountCollection","Members":[{"@odata.id":"/redfish/v1/AccountService/Accounts/admin"}],"Members@odata.count":1,"Name":"Accounts Collection"}
-Failed to delete device data
+Failed to delete device data, status code 400, delete data: 
 {"@odata.context":"/redfish/v1/$metadata#AccountService.AccountService","@odata.id":"/redfish/v1/AccountService/Accounts","@odata.type":"#ManagerAccountCollection.ManagerAccountCollection","Members":[{"@odata.id":"/redfish/v1/AccountService/Accounts/admin"}],"Members@odata.count":1,"Name":"Accounts Collection"}
-The user account admin_1 is not available in device
+Please check this user account in this device
 ip1:port1 detached

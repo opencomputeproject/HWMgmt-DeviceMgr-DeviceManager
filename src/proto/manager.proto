@@ -20,21 +20,29 @@
 
 syntax = "proto3";
 
-package importer;
-option go_package = "./proto;importer";
+package manager;
+option go_package = "./proto;manager";
 
 import "google/protobuf/empty.proto";
 //import "google/api/annotations.proto";
+
+message BasicAuth {
+	bool enabled = 1;
+	string userName = 2;
+	string password = 3;
+	bool passAuth = 4;
+}
 
 message DeviceAccount {
 	string IpAddress = 1;
 	string actUsername = 2;
 	string actPassword = 3;
-	string userToken = 4;
+	string userOrToken = 4;
 	string privilege = 5;
 	bool sessionEnabled = 6;
 	fixed64 sessionTimeout = 7;
 	string httptoken = 8;
+	BasicAuth basicAuth = 9;
 }
 
 message DeviceAccountList {
@@ -44,12 +52,8 @@ message DeviceAccountList {
 message DeviceInfo {
 	string ip_address = 1;
 	uint32 frequency = 2;
-}
-
-message FreqInfo {
-	string IpAddress = 1;
-	string userToken = 2;
-	uint32 Frequency = 3;
+	bool detectDevice = 3;
+	bool passAuth = 4;
 }
 
 message HttpData {
@@ -73,31 +77,45 @@ message HttpInfo {
 
 message LogService {
 	string IpAddress = 1;
-	string userToken = 2;
-	bool logServiceEnabled = 3;
-	repeated string logData = 4;
+	string userOrToken = 2;
+	string id = 3;
+	bool logServiceEnabled = 4;
+	repeated string logData = 5;
+	uint64 begin = 6;
+	uint64 end = 7;
+}
+
+message SoftwareUpdate {
+	string IpAddress = 1;
+	string userOrToken = 2;
+	string softwareDownloadType = 3;
+	string softwareDownloadURI = 4;
 }
 
 message RfAPIList {
 	repeated string rfAPIList = 1;
 }
 
-message PollingRfAPI {
-	string IpAddress = 1;
-	string userToken = 2;
-	string rfAPI = 3;
-}
-
 message Device {
 	string IpAddress = 1;
 	string RedfishAPI = 2;
-	DeviceAccount deviceAccount = 3;
-	HttpInfo httpInfo = 4;
-	string userToken = 5;
+	HttpInfo httpInfo = 3;
+	string userOrToken = 4;
+	string contentType = 5;
+	string HTTPType = 6;
+	uint32 frequency = 7;
+	string pollingDataRfAPI = 8;
 }
 
 message DeviceData {
 	repeated string deviceData = 1;
+}
+
+message SystemBoot {
+	string IpAddress = 1;
+	string userOrToken = 2;
+	string resetType = 3;
+	repeated string supportedResetType = 4;
 }
 
 message DeviceTemperatureList {
@@ -106,13 +124,11 @@ message DeviceTemperatureList {
 
 message DeviceTemperature {
 	string IpAddress = 1;
-	string userToken = 2;
-	repeated string tempData = 3;
-}
-
-message RedfishInfo {
-	string IpAddress = 1;
-	string userToken = 2;
+	string userOrToken = 2;
+	string memberID = 3;
+	uint32 upperThresholdNonCritical = 4;
+	uint32 lowerThresholdNonCritical = 5;
+	repeated string tempData = 6;
 }
 
 message Empty {}
@@ -128,24 +144,31 @@ message DeviceListByIp {
 service device_management {
 	rpc SendDeviceList(DeviceList) returns (google.protobuf.Empty) {}
 	rpc DeleteDeviceList(Device) returns (google.protobuf.Empty) {}
-	rpc SetFrequency(FreqInfo) returns (google.protobuf.Empty) {}
+	rpc SetFrequency(Device) returns (google.protobuf.Empty) {}
 	rpc GetCurrentDevices(Empty) returns (DeviceListByIp) {}
 	rpc CreateDeviceAccount(DeviceAccount) returns (google.protobuf.Empty) {}
 	rpc RemoveDeviceAccount(DeviceAccount) returns (google.protobuf.Empty) {}
 	rpc ChangeDeviceUserPassword(DeviceAccount) returns (google.protobuf.Empty) {}
 	rpc LoginDevice(DeviceAccount) returns (DeviceAccount) {}
 	rpc LogoutDevice(DeviceAccount) returns (google.protobuf.Empty) {}
-	rpc StartQueryDeviceData(DeviceAccount) returns (google.protobuf.Empty) {}
-	rpc StopQueryDeviceData(DeviceAccount) returns (google.protobuf.Empty) {}
+	rpc StartQueryDeviceData(Device) returns (google.protobuf.Empty) {}
+	rpc StopQueryDeviceData(Device) returns (google.protobuf.Empty) {}
 	rpc ListDeviceAccounts(DeviceAccount) returns (DeviceAccountList) {}
 	rpc SetSessionService(DeviceAccount) returns (google.protobuf.Empty) {}
 	rpc EnableLogServiceState(LogService) returns (google.protobuf.Empty) {}
 	rpc ResetDeviceLogData(LogService) returns (google.protobuf.Empty) {}
 	rpc GetDeviceLogData(LogService) returns (LogService) {}
+	rpc SendDeviceSoftwareDownloadURI(SoftwareUpdate) returns (google.protobuf.Empty) {}
 	rpc GetDeviceData(Device) returns (DeviceData) {}
 	rpc GenericDeviceAccess(Device) returns (HttpData) {}
-	rpc AddPollingRfAPI(PollingRfAPI) returns (google.protobuf.Empty) {}
-	rpc RemovePollingRfAPI(PollingRfAPI) returns (google.protobuf.Empty) {}
-	rpc GetRfAPIList(PollingRfAPI) returns (RfAPIList) {}
+	rpc AddPollingRfAPI(Device) returns (google.protobuf.Empty) {}
+	rpc RemovePollingRfAPI(Device) returns (google.protobuf.Empty) {}
+	rpc ClearPollingRfAPI(Device) returns (google.protobuf.Empty) {}
+	rpc GetRfAPIList(Device) returns (RfAPIList) {}
+	rpc GetDeviceSupportedResetType(SystemBoot) returns (SystemBoot) {}
+	rpc ResetDeviceSystem(SystemBoot) returns (google.protobuf.Empty) {}
 	rpc GetDeviceTemperatures(DeviceTemperature) returns (DeviceTemperature) {}
+	rpc SetDeviceTemperatureForEvent(DeviceTemperature) returns (google.protobuf.Empty) {}
+	rpc SetHTTPApplication(Device) returns (google.protobuf.Empty) {}
+	rpc SetHTTPType(Device) returns (google.protobuf.Empty) {}
 }

@@ -20,13 +20,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-./dm attach $1:$2:120
-./dm setsessionservice $1:$2:"":true:300
-token=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
-./dm setlogservice $1:$2:$token:true
-./dm setlogservice $1:$2:$token:false
-./dm resetlogdata $1:$2:$token
-./dm getdevicelogdata $1:$2:$token
+./dm attach $1:$2:120:1:false
+./dm setsessionservice $1:$2:"":true:300 2>&1 > /dev/null
+token=`./dm logindevice $1:$2:$5:$6:false| cut -d' ' -f4`
+./dm setlogservice $1:$2:$token:1:true
+./dm setlogservice $1:$2:$token:1:false
+./dm resetlogdata $1:$2:$token:2
+./dm resetlogdata $1:$2:$token:1
+./dm getdevicelogdata $1:$2:$token:2
+./dm getdevicelogdata $1:$2:$token:1
 ./dm detach $1:$2:$token
 
 sed -e '/^\/\//d' -e 's/ip1/'${1}'/g; s/port1/'${2}'/g; s/ip2/'${3}'/g; s/port2/'${4}'/g; s/token/'${token}'/g' "$9".expected > "$9".e

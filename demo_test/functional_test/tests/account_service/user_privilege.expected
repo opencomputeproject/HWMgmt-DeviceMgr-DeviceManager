@@ -18,17 +18,16 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
-ip1:port1 set ok!
 admin_1 created
 operator created
 readonly created
-The user operator privilege is not administrator
-The user readonly privilege is not administrator
-The user readonly privilege is not administrator
-The user operator privilege is not administrator
-The user readonly privilege is not administrator
-The user operator privilege is not administrator
-The user readonly privilege is not administrator
+The user privilege is not administrator
+The user privilege is not administrator
+The user privilege is not administrator
+The user privilege is not administrator
+The user privilege is not administrator
+The user (operator) could be not removed itself
+The user (readonly) could be not removed itself
 admin_1 deleted
 operator deleted
 readonly deleted

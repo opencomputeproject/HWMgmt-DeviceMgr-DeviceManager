@@ -18,11 +18,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# docker build -t opencord/device-management:latest .
-# docker build -t 10.90.0.101:30500/opencord/kafka-topic-exporter:latest .
-
 FROM alpine:3.9.4
 WORKDIR /app/
+RUN apk update
+RUN apk add sshpass=1.06-r0 \
+            openssh-client=7.9_p1-r6
 COPY device_key/https-server.crt .
 COPY device_key/https-server.key .
 COPY apps/main /app/

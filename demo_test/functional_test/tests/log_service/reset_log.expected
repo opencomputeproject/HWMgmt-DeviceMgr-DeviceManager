@@ -20,7 +20,8 @@
 ip1:port1 attached
 ip1:port1 set ok!
 ip1:port1 set ok!
+Failed to get Log service Redfish API
 ip1:port1 set ok!
-ip1:port1 set ok!
+Failed to get Log service Redfish API
 {"@odata.context":"/redfish/v1/$metadata#LogEntryCollection.LogEntryCollection","@odata.id":"/redfish/v1/Managers/1/LogServices/1/Entries","@odata.type":"#LogEntryCollection.LogEntryCollection","Description":"Collection of Logs for this System","Members":[],"Members@odata.count":0,"Name":"Log Service Collection"}
 ip1:port1 detached

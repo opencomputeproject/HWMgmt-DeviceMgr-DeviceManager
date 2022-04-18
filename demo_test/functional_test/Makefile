@@ -27,19 +27,23 @@ DEMOTESTLOG = demotest.log
 TESTSDIR := tests
 TESTTAG = tc
 DMTOOL = ${PWD}/dm
-DETECT = $(shell \
+INIT = $(shell \
 if [ -f "${DMTOOL}" ]; \
 then \
 pushd . > /dev/null; \
 cd ${DEMOTESTDIR}; \
 ./demotest > ${DEMOTESTLOG} 2>&1 & sleep 2; \
 popd>/dev/null; \
-${DMTOOL} attach $1:$2:120 > /dev/null; \
+${DMTOOL} attach $1:$2:120:1 > /dev/null; \
 ${DMTOOL} setsessionservice $1:$2:"":true:300 > /dev/null; \
-token=`${DMTOOL} logindevice $1:$2:$3:$4| cut -d' ' -f4`; \
+token=`${DMTOOL} logindevice $1:$2:$3:$4:false| cut -d' ' -f4`; \
 ${DMTOOL} detach $1:$2:$$token > /dev/null; \
 pidof demotest > /dev/null && pkill demotest; \
 fi \
+)
+$(shell \
+$(eval $(call INIT,${IP1},${PORT1},${USER1},${PWD1})) \
+$(eval $(call INIT,${IP2},${PORT2},${USER2},${PWD2})) \
 )
 TESTS = $(shell find ${TESTSDIR} -name "*.${TESTTAG}")
 DIRPATH = $(firstword $(subst ., ,$1))
@@ -48,7 +52,7 @@ RED = \033[0;31m
 GREEN = \033[0;32m
 NC = \033[0m # No Color
 
-.PHONY : check-arg detect test clean demotest $(TESTS) results
+.PHONY : check-arg test clean demotest $(TESTS) results
 
 .DEFAULT_GOAL := dm
 
@@ -66,13 +70,9 @@ demotest:
 	@[ -z ${TERM} ] && : || tput clear
 
 dm: test_cli.go
-	${GO_BIN_PATH}/go build -i -v -o $@
+	${GO_BIN_PATH}/go build -v -o $@
 
-detect:
-	@$(eval $(call DETECT,${IP1},${PORT1},${USER1},${PWD1}))
-	@$(eval $(call DETECT,${IP2},${PORT2},${USER2},${PWD2}))
-
-test: check-arg dm detect clean demotest $(TESTS) results
+test: check-arg dm clean demotest $(TESTS) results
 	@make -C . clean
 	@echo "Device-Manager Automation Test Finished!"
 

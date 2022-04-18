@@ -20,10 +20,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-./dm attach $1:$2:120
-./dm setsessionservice $1:$2:"":true:300
-admin_token=`./dm logindevice $1:$2:$5:$6| cut -d' ' -f4`
-./dm createaccount $1:$2:$admin_token:admin_1:admin_1:Administrator
+./dm attach $1:$2:120:1:false
+./dm setsessionservice $1:$2:"":true:300 2>&1 > /dev/null
+admin_token=`./dm logindevice $1:$2:$5:$6:false| cut -d' ' -f4`
+./dm createaccount $1:$2:$admin_token:admin_1:0penBmc:Administrator
 ret=`./dm deviceaccess $1:$2:$admin_token:GET:/redfish/v1/AccountService/Accounts:""`
 echo $ret
 userId1=`echo $ret|awk -F[{}] '{print $3}'|cut -d'/' -f6|awk -F"\"" '{print $1}'`

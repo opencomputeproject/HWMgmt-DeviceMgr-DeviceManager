@@ -18,7 +18,6 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
-ip1:port1 set ok!
-Port number 88 should be 8888
+The device ip1:88 could not reach
 invalid command ip1:88
 ip1:port1 detached

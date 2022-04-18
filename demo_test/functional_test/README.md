@@ -37,10 +37,17 @@ been deployed.
              USER1=<user of 1st device> PWD1=<password of 1st device> USER2=<user of 2nd device> PWD2=<password of 2nd device>
 ```
 
+   Optionally, The "EXTERNAL=y" parameter is testing the stanadard OCP functionality. It needs to install standard PSME software
+   to device.
+```shell
+   make test IP1=<ip of 1st device> PORT1=<RF port # of 1st device> IP2=<ip of 2nd device> PORT2=<RF port # of 2nd device>
+             USER1=<user of 1st device> PWD1=<password of 1st device> USER2=<user of 2nd device> PWD2=<password of 2nd device> EXTERNAL=y
+```
+
 # Manual testing at command line
    To build 'dm', at command line, type
 ```shell
-	make dm
+	make
 ```
 
 # Manual Test
@@ -53,10 +60,10 @@ Example: Set IP 192.168.4.27, port 8888, freq 180, device network detection 1
 ```
 
 ## register multiple devices
-Example: Set "IP 192.168.4.27 port 8888, freq 180" and
-             "IP 192.168.4.26 port 8888 freq 120"
+Example: Set "IP 192.168.4.27 port 8888, freq 180, device network detection 1" and
+             "IP 192.168.4.26 port 8888 freq 120, device network detection 0"
 ```shell
-./dm attach 192.168.4.27:8888:180:1 192.168.4.26:8888:120
+./dm attach 192.168.4.27:8888:180:1 192.168.4.26:8888:120:0
 ```
 
 ## set session service
@@ -129,6 +136,12 @@ Example: IP: 192.168.4.27 and port: 8888
 ./dm stopquerydevice 192.168.4.27:8888:36b22b37ece56d5e00b7b2200df71c24
 ```
 
+## show device accounts
+Example: IP: 192.168.4.27 and port: 8888
+```shell
+./dm sdeviceaccountslist 192.168.4.27:8888:36b22b37ece56d5e00b7b2200df71c24
+```
+
 ## add Redfish API to poll device data periodically
 Example: IP: 192.168.4.27 and port: 8888, Redfish API: /redfish/v1/Managers
 ```shell
@@ -171,14 +184,33 @@ Example: IP: 192.168.4.27 and port: 8888
 ./dm getdevicelogdata 192.168.4.27:8888:36b22b37ece56d5e00b7b2200df71c24
 ```
 
+## get device reset system type
+Example: IP: 192.168.4.27 and port: 8888
+```shell
+./dm getdeviceresettype 192.168.4.27:8888:36b22b37ece56d5e00b7b2200df71c24
+```
+
+## reset device system (supported reset type is "GracefulRestart". BMC supports "ForceOn", "ForceOff" and "ForceReset")
+Example: IP: 192.168.4.27 and port: 8888, reset type: GracefulRestart
+```shell
+./dm resetdevicesystem 192.168.4.27:8888:36b22b37ece56d5e00b7b2200df71c24:GracefulRestart
+```
+
 ## get device tempertures infomation
 Example: IP: 192.168.4.27 and port: 8888
 ```shell
 ./dm getdevicetemperaturedata 192.168.4.27:8888:36b22b37ece56d5e00b7b2200df71c24
 ```
 
+## configure the device event temperature
+Example: IP: 192.168.4.27 and port: 8888, member (sensor) id: 1, upper threshold non-critical temperature: 80,
+         lower threshold non-critical temperature: 75
+```shell
+./dm setdevicetemperaturedata 192.168.4.27:8888:36b22b37ece56d5e00b7b2200df71c24:1:80:75
+```
+
 ## get device data from cache
-Example: IP: 192.168.4.27 and port: 8888, Redfish API: /redfish/v1/Systems/1
+Example: IP: 192.168.4.27 and port: 8888, Redfish API: /redfish/v1/Chassis/1
 ```shell
 ./dm getdevicedata 192.168.4.27:8888:36b22b37ece56d5e00b7b2200df71c24:/redfish/v1/Managers/1
 ```

@@ -18,8 +18,8 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
+Failed to get Log service Redfish API
 ip1:port1 set ok!
 ip1:port1 set ok!
-ip1:port1 set ok!
-The log service state has in the false from device ip1:port1
+The log service state has in the false
 ip1:port1 detached

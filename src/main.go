@@ -23,7 +23,6 @@ package main
 import (
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"sync"
 
 	"io/ioutil"
@@ -36,19 +35,19 @@ import (
 	"strings"
 	"time"
 
-	importer "devicemanager/proto"
+	manager "devicemanager/proto"
+
 	"github.com/Shopify/sarama"
 
 	logrus "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
-//PsmeDefaultPortNumber ...
-const PsmeDefaultPortNumber = "8888"
-
-var lock sync.Mutex
 var (
-	importerTopic = "importer"
+	//lock ...
+	lock sync.Mutex
+	//managerTopic ...
+	managerTopic = "manager"
 )
 
 //NewGrpcServer ...
@@ -66,17 +65,19 @@ func (s *Server) startGrpcServer() {
 		panic(err)
 	}
 	s.gRPCserver = gserver
-	importer.RegisterDeviceManagementServer(gserver, s)
+	manager.RegisterDeviceManagementServer(gserver, s)
 	if err := gserver.Serve(listener); err != nil {
 		logrus.Errorf("Failed to run gRPC server: %s ", err)
 		panic(err)
 	}
 }
+
 func (s *Server) kafkaCloseProducer() {
 	if err := s.dataproducer.Close(); err != nil {
 		panic(err)
 	}
 }
+
 func (s *Server) kafkaInit() {
 	logrus.Info("Starting kafka init to Connect to broker: ")
 	config := sarama.NewConfig()
@@ -101,10 +102,8 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 			logrus.Errorf("Error getting HTTP data %s", err)
 		}
 		defer r.Body.Close()
-		logrus.Info("Received Event Message ")
-		fmt.Printf("%s\n", Body)
 		message := &sarama.ProducerMessage{
-			Topic: importerTopic,
+			Topic: managerTopic,
 			Value: sarama.StringEncoder(Body),
 		}
 		s.dataproducer.Input() <- message
@@ -131,11 +130,26 @@ func (s *Server) vlidateDeviceRegistered(deviceIPAddress string) bool {
 	return false
 }
 
+func detectNetwork(ip string, port string) bool {
+	address := net.JoinHostPort(ip, port)
+	// 3 second timeout
+	conn, err := net.DialTimeout("tcp", address, 3*time.Second)
+	if err != nil {
+		return false
+	}
+	if conn != nil {
+		_ = conn.Close()
+	} else {
+		return false
+	}
+	return true
+}
+
 /* validateIPAddress() verifies if the ip and port are valid and already registered then return the truth value of the desired state specified by the following 2 switches,
    wantRegistered: 'true' if the fact of an ip is registered is the desired state
    includePort: 'true' further checks if <ip>:<port#> does exist in the devicemap in case an ip is found registered
 */
-func (s *Server) validateIPAddress(ipAddress string) (msg string, ok bool) {
+func (s *Server) validateIPAddress(ipAddress string, detectDevice bool) (msg string, ok bool) {
 	msg = ""
 	ok = false
 	if !strings.Contains(ipAddress, ":") {
@@ -145,23 +159,22 @@ func (s *Server) validateIPAddress(ipAddress string) (msg string, ok bool) {
 	}
 	splits := strings.Split(ipAddress, ":")
 	ip, port := splits[0], splits[1]
-	if net.ParseIP(ip) == nil {
-		// also check to see if it's a valid hostname
-		if _, err := net.LookupIP(ip); err != nil {
-			logrus.Errorf("Invalid IP address %s", ip)
-			msg = "Invalid IP address " + ip
-			return
-		}
+	if _, err := net.LookupIP(ip); err != nil || net.ParseIP(ip) == nil {
+		logrus.Errorf("Invalid IP address %s", ip)
+		msg = "Invalid IP address " + ip
+		return
 	}
 	if _, err := strconv.Atoi(port); err != nil {
 		logrus.Errorf("Port number %s is not an integer", port)
 		msg = "Port number " + port + " needs to be an integer"
 		return
 	}
-	if port != PsmeDefaultPortNumber {
-		logrus.Errorf("Port number is %s, it should be %s", port, PsmeDefaultPortNumber)
-		msg = "Port number " + port + " should be " + PsmeDefaultPortNumber
-		return
+	if detectDevice == true {
+		if detectNetwork(ip, port) == false {
+			logrus.Errorf("The device %s:%s could not reach", ip, port)
+			msg = "The device " + ip + ":" + port + " could not reach"
+			return
+		}
 	}
 	ok = true
 	return
@@ -203,6 +216,11 @@ func (s *Server) initDataPersistence() {
 					s.devicemap[ip].Datacollector.getdataend = make(chan bool)
 					s.devicemap[ip].Freqchan = make(chan uint32)
 					s.devicemap[ip].Datafile = getDataFile(ip)
+					s.devicemap[ip].DeviceDatafile = getDeviceDataFile(ip)
+					s.devicemap[ip].QueryState = false
+					ContentType[ip] = s.devicemap[ip].ContentType
+					RfProtocol[ip] = s.devicemap[ip].HTTPType
+					go s.collectData(ip)
 				}
 			}
 		}
@@ -215,7 +233,7 @@ func (s *Server) initDataPersistence() {
 
 func init() {
 	Formatter := new(logrus.TextFormatter)
-	Formatter.TimestampFormat = "02-01-2006 15:04:05"
+	Formatter.TimestampFormat = "02-01-2006 15:04:05.000000"
 	Formatter.FullTimestamp = true
 	logrus.SetFormatter(Formatter)
 	logrus.Info("log Connecting to broker:")
@@ -229,12 +247,8 @@ func main() {
 	ProcessGlobalOptions()
 	ShowGlobalOptions()
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
 	s := Server{
-		devicemap:  make(map[string]*device),
-		httpclient: client,
+		devicemap: make(map[string]*device),
 	}
 	s.kafkaInit()
 	go s.runServer()

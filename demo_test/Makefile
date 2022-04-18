@@ -28,8 +28,8 @@ go-install:
 prereq:
 	cd .. && make prereq
 
-demotest: proto/importer.pb.go
-	@GOROOT=${GO_DIR} GOPATH=$(HOME)/app GO111MODULE=on ${GO_BIN_PATH}/go build -mod=vendor -i -v -o $@
+demotest: proto/manager.pb.go
+	@GOROOT=${GO_DIR} GOPATH=$(HOME)/app GO111MODULE=on ${GO_BIN_PATH}/go build -mod=vendor -v -o $@
 
 proto/importer.pb.go: proto/importer.proto
 	cd .. && make src/proto/importer.pb.go

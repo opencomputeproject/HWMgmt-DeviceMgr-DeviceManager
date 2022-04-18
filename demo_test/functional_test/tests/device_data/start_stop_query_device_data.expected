@@ -18,7 +18,6 @@
 // specific language governing permissions and limitations
 // under the License.
 ip1:port1 attached
-ip1:port1 set ok!
 ip1:port1 started
 {timeStamp,"@odata.context":"/redfish/v1/$metadata#Chassis.Chassis","@odata.id":"/redfish/v1/Chassis","@odata.type":"#ChassisCollection.ChassisCollection","Name":"ChassisCollection","Description":"CollectionofChassis","Members@odata.count":1,"Members":[{"@odata.id":"/redfish/v1/Chassis/1"}]}
 ip1:port1 stopped
