@@ -7,6 +7,7 @@
 - golang v1.17.2
 
 ## The following third party softwares are required to run the services
+- etcd 3.4.15
 - Kafka 2.5.0
 - Redis v6.2.5
 - ZooKeeper v3.5.8
