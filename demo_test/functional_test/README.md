@@ -220,3 +220,11 @@ Example: IP: 192.168.4.27 and port: 8888, Redfish API: /redfish/v1/Managers/1
 ```shell
 ./dm getdevicedata 192.168.4.27:8888:36b22b37ece56d5e00b7b2200df71c24:GET:/redfish/v1/Managers/1:""
 ```
+
+## Before running functional tests, environment variables must be set
+Example: IP: 192.168.40.133 and port: 8888, username: admin, password: admin
+```shell
+export IP_ADDRESS=192.168.40.133:8888
+export BASIC_AUTH_USERNAME=admin
+export BASIC_AUTH_PASSWORD=admin
+```
