@@ -112,6 +112,7 @@ const (
 	ErrEventTemperInvalid
 	ErrSetEventTemperFailed
 	ErrUserAuthNotFound
+	ErrMissingDeviceIP
 )
 
 // String - Creating error descriptions - give the type a String function
@@ -209,6 +210,7 @@ func (e errorIndex) String(args ...string) string {
 		/*ErrEventTemperInvalid*/ "The device event temperature is invalid",
 		/*ErrSetEventTemperFailed*/ "Failed to configure device event temperature, status code " + argsStrs[0],
 		/*ErrUserAuthNotFound*/ "The user authentication data does not found",
+		/*ErrMissingDeviceIP*/ "Device ip address is missing",
 	}[e-1]
 }
 

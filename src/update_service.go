@@ -37,14 +37,13 @@ func (u *UpdateService) SimpleUpdate(ipAddress, authToken string, request Simple
 		return "", err
 	}
 
-	response, body, _, postErr := postHTTPDataByRfAPI(ipAddress, SimpleUpdateURI, userData, request)
+	response, body, statusCode, postErr := postHTTPDataByRfAPI(ipAddress, SimpleUpdateURI, userData, request)
 	if postErr != nil {
 		logrus.Errorf("error during http post to redfish device: %s", postErr.Error())
 		return "", err
 	}
 
 	// Redfish SimpleUpdate should return 202 Accepted status code. In addition, Task Monitor should be present in Location header.
-	statusCode := response.StatusCode
 	if statusCode != http.StatusAccepted {
 		logrus.Errorf("simpleUpdate status code is different from 202 Accepted. Actual status code: %v,response body: %s", statusCode, body)
 	}
@@ -70,8 +69,7 @@ func (s *SimpleUpdateRequest) ToJson() string {
 
 func validateSimpleUpdateRequest(request SimpleUpdateRequest) error {
 	if len(request.ImageURI) == 0 {
-		errorMsg := "image URI is required for SimpleUpdate"
-		return errors.New(errorMsg)
+		return errors.New("image URI is required for SimpleUpdate")
 	}
 
 	return nil

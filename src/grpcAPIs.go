@@ -219,7 +219,7 @@ func (s *Server) SimpleUpdate(c context.Context, request *manager.SimpleUpdateRe
 	logrus.Info("Received RPC call for SimpleUpdate")
 	ipAddress := request.IpAddress
 	if request == nil || len(ipAddress) == 0 {
-		return nil, status.Errorf(http.StatusBadRequest, "Device ip address is missing")
+		return nil, status.Errorf(http.StatusBadRequest, ErrMissingDeviceIP.String())
 	}
 	authToken := request.UserOrToken
 
