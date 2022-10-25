@@ -24,7 +24,7 @@ under the License.
 
 # Device-Management Repository
 
-This repository contains the code for Device-Manager and related functionality.
+This repository contains the code for Device Manager and related functionality.
 
 # Device Manager Platform
 
@@ -49,10 +49,10 @@ A gRPC interface is also established between Device-Manager and user-application
 
 The device can implement the Redfish Service on an out-of-band platform entity (e.g. BMC) or on an in-band entity (e.g software agent).
 
-The Redfish Service should be conformant to the OCP Baseline Profile.
+The Redfish Service on the platform should be conformant to the OCP Baseline Profile.
 The [OCP Baseline profile](https://github.com/opencomputeproject/HWMgmt-OCP-Profiles) prescribes the required [Redfish interface](http://dmtf.org/redfish) support.
 
-The Linux Foundation OpenBMC repository contains source for a BMC firmware image with is conformant to the OCP Baseline profile.
+The Linux Foundation [OpenBMC repository](https://github.com/openbmc) contains source for a BMC firmware image with is conformant to the OCP Baseline profile.
 
 The [OCP DM-PSME repository](https://github.com/opencomputeproject/DM-Redfish-PSME) contains an software agent for a Linux OS.  The image has been used by Edgecore on their XGS-PON/GPON vOLTs and ONL/SONIC switches.
 
@@ -65,7 +65,7 @@ such as *CPU 2 cores/Memory 4GB and SSD driver 40GB*. The host system need to in
 The following procedures work in Ubuntu 16/18/20 Desktop/Server environment.
 
 ## Build and Install Device Manager
-The following command will: 1) build the Device Manager containers, 2) install Device Manager and 3) install the packages and commands. After the Once the command completes, Device Manager is ready manage the devices.
+The following command will: 1) build the Device Manager containers, 2) install Device Manager and 3) install the packages and commands. After the command completes, Device Manager is ready to manage the devices.
 
 ```
 $> make all
@@ -153,7 +153,7 @@ Bring up the Device Manager Kubenetes Pod
 $> make dm
 ```
 
-After bring up the device manager pod, the command can be used to check the status of Device Manager Pod.
+After bringing up the Device Manager pod, the command can be used to check the status of Device Manager Pod.
 
 ```text
 $> make status | grep device-management
