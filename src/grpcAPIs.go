@@ -651,6 +651,21 @@ func (s *Server) GetDeviceData(c context.Context, device *manager.Device) (*mana
 	if device == nil || len(device.IpAddress) == 0 {
 		return nil, status.Errorf(http.StatusBadRequest, ErrDeviceData.String())
 	}
+	if !s.devicemap[device.IpAddress].QueryState {
+		logrus.Errorf(ErrCollectingNotStarted.String())
+		return nil, errors.New(ErrCollectingNotStarted.String())
+	}
+
+	found := false
+	for _, api := range s.devicemap[device.IpAddress].RfAPIList {
+		if api == device.RedfishAPI {
+			found = true
+		}
+	}
+	if !found {
+		logrus.Errorf(ErrRfAPINotExists.String())
+		return nil, errors.New(ErrRfAPINotExists.String())
+	}
 	ipAddress := device.IpAddress
 	redfishAPI := device.RedfishAPI
 	var authStr string
