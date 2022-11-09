@@ -105,10 +105,15 @@ func performHTTPRedirection(method string, client *http.Client, location string)
 func getHTTPBodyByRfAPI(deviceIPAddress, RfAPI string, userAuthData userAuth) (body []byte, statusCode int, err error) {
 	var request *http.Request
 	RfAPI = addSlashToTail(RfAPI)
+	var url string
 	if RfProtocol != nil && RfProtocol[deviceIPAddress] != "" {
-		request, _ = http.NewRequest("GET", RfProtocol[deviceIPAddress]+deviceIPAddress+RfAPI, nil)
+		url = RfProtocol[deviceIPAddress] + deviceIPAddress + RfAPI
 	} else {
-		request, _ = http.NewRequest("GET", RfDefaultHttpsProtocol+deviceIPAddress+RfAPI, nil)
+		url = RfDefaultHttpsProtocol + deviceIPAddress + RfAPI
+	}
+	request, err = http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, http.StatusBadRequest, err
 	}
 	request.Close = true
 	addAuthHeader(request, userAuthData)
