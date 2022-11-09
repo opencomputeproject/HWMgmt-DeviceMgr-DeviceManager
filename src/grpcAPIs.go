@@ -424,7 +424,6 @@ func (s *Server) CreateDeviceAccount(c context.Context, account *manager.DeviceA
 		errStatus, _ := status.FromError(err)
 		logrus.WithFields(logrus.Fields{
 			"Username": newUsername,
-			"Password": newPassword,
 		}).Error(errStatus.Message())
 		return &empty.Empty{}, status.Errorf(codes.Code(statusCode), errStatus.Message())
 	}
@@ -500,7 +499,6 @@ func (s *Server) LoginDevice(c context.Context, account *manager.DeviceAccount) 
 		logrus.WithFields(logrus.Fields{
 			"IP address:port": ipAddress,
 			"Username":        loginUserName,
-			"Password":        loginPassword,
 		}).Error(errStatus.Message())
 		return nil, status.Errorf(codes.Code(statusCode), errStatus.Message())
 	}
@@ -576,7 +574,6 @@ func (s *Server) ChangeDeviceUserPassword(c context.Context, account *manager.De
 		errStatus, _ := status.FromError(err)
 		logrus.WithFields(logrus.Fields{
 			"Username": userName,
-			"Password": password,
 		}).Error(errStatus.Message())
 		return &empty.Empty{}, status.Errorf(codes.Code(statusCode), errStatus.Message())
 	}
