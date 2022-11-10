@@ -355,7 +355,7 @@ func (s *Server) removeDeviceAccount(deviceIPAddress string, authStr string, rem
 	id, status = s.getAccountDataByLabel(deviceIPAddress, authStr, removeUser, "Id")
 	if status == true {
 		_, statusCode, _ = deleteHTTPDataByRfAPI(deviceIPAddress, RfAccountsServiceAccounts, userAuthData, id)
-		if statusCode != http.StatusOK {
+		if statusCode != http.StatusOK && statusCode != http.StatusNoContent {
 			logrus.Errorf(ErrDeleteUserAccount.String(removeUser, strconv.Itoa(statusCode)))
 			return http.StatusNotFound, errors.New(ErrDeleteUserAccount.String(removeUser, strconv.Itoa(statusCode)))
 		}
