@@ -22,7 +22,6 @@ package main
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"sync"
 
 	"io/ioutil"
@@ -30,7 +29,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -70,26 +68,6 @@ func (s *Server) startGrpcServer() {
 		logrus.Errorf("Failed to run gRPC server: %s ", err)
 		panic(err)
 	}
-}
-
-func (s *Server) kafkaCloseProducer() {
-	if err := s.dataproducer.Close(); err != nil {
-		panic(err)
-	}
-}
-
-func (s *Server) kafkaInit() {
-	logrus.Info("Starting kafka init to Connect to broker: ")
-	config := sarama.NewConfig()
-	config.Producer.RequiredAcks = sarama.WaitForAll
-	config.Producer.Compression = sarama.CompressionSnappy
-	config.Producer.Flush.Frequency = 500 * time.Millisecond
-	config.Producer.Retry.Max = 10
-	producer, err := sarama.NewAsyncProducer([]string{GlobalConfig.Kafka}, config)
-	if err != nil {
-		panic(err)
-	}
-	s.dataproducer = producer
 }
 
 func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
@@ -180,57 +158,6 @@ func (s *Server) validateIPAddress(ipAddress string, detectDevice bool) (msg str
 	return
 }
 
-func (s *Server) initDataPersistence() {
-	logrus.Info("Retrieving persisted data")
-	subscriptionListPath = pvmount + "/subscriptions"
-	if err := os.MkdirAll(subscriptionListPath, 0777); err != nil {
-		logrus.Errorf("MkdirAll %s", err)
-	} else {
-		files, err := ioutil.ReadDir(subscriptionListPath)
-		if err != nil {
-			logrus.Errorf("ReadDir %s", err)
-		} else {
-			for _, f := range files {
-				b, err := ioutil.ReadFile(path.Join(subscriptionListPath, f.Name()))
-				if err != nil {
-					logrus.Errorf("Readfile %s", err)
-				} else if f.Size() > 0 {
-					ip := f.Name()
-					d := device{}
-					err := json.Unmarshal(b, &d)
-					if err != nil {
-						logrus.Errorf("Unmarshal %s", err)
-						return
-					}
-					s.devicemap[ip] = &d
-					freq := s.devicemap[ip].Freq
-					/* if initial interval is 0, create a dummy ticker, which is stopped right away, so getdata is not nil */
-					if freq == 0 {
-						freq = RfDataCollectDummyInterval
-					}
-					s.devicemap[ip].Datacollector.getdata = time.NewTicker(time.Duration(freq) * time.Second)
-					if s.devicemap[ip].Freq == 0 {
-						s.devicemap[ip].Datacollector.getdata.Stop()
-					}
-					s.devicemap[ip].Datacollector.quit = make(chan bool)
-					s.devicemap[ip].Datacollector.getdataend = make(chan bool)
-					s.devicemap[ip].Freqchan = make(chan uint32)
-					s.devicemap[ip].Datafile = getDataFile(ip)
-					s.devicemap[ip].DeviceDatafile = getDeviceDataFile(ip)
-					s.devicemap[ip].QueryState = false
-					ContentType[ip] = s.devicemap[ip].ContentType
-					RfProtocol[ip] = s.devicemap[ip].HTTPType
-					go s.collectData(ip)
-				}
-			}
-		}
-	}
-	deviceDataPath = pvmount + "/device_data"
-	if err := os.MkdirAll(deviceDataPath, 0777); err != nil {
-		logrus.Errorf("making device data path failed %s", err)
-	}
-}
-
 func init() {
 	Formatter := new(logrus.TextFormatter)
 	Formatter.TimestampFormat = "02-01-2006 15:04:05.000000"
@@ -250,22 +177,10 @@ func main() {
 	s := Server{
 		devicemap: make(map[string]*device),
 	}
-	s.kafkaInit()
 	go s.runServer()
 	go s.startGrpcServer()
-	pvmount = os.Getenv("DEVICE_MANAGEMENT_PVMOUNT")
-	logrus.Infof("pvmount: %s", pvmount)
-	if pvmount != "" {
-		logrus.Infof("pvmount enabled")
-		s.initDataPersistence()
-	} else {
-		logrus.Infof("pvmount disabled")
-	}
 	quit := make(chan os.Signal, 10)
 	signal.Notify(quit, os.Interrupt)
 	sig := <-quit
 	logrus.Infof("Shutting down:%d", sig)
-	s.kafkaCloseProducer()
-	s.closeDataFiles()
-	s.closeDeviceDataFiles()
 }

@@ -22,11 +22,8 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -56,83 +53,9 @@ var (
 		"/redfish/v1/AccountService/Roles/Administrator",
 		"/redfish/v1/AccountService/Roles/Operator",
 		"/redfish/v1/AccountService/Roles/ReadOnly"}
-	//pvmount ...
-	pvmount = os.Getenv("DEVICE_MANAGEMENT_PVMOUNT")
 	//subscriptionListPath ...
 	subscriptionListPath string
-	//deviceDataPath ...
-	deviceDataPath string
 )
-
-func (s *Server) updateDataFile(ipAddress string) {
-	s.devicemap[ipAddress].DeviceLockFile.Lock()
-	defer s.devicemap[ipAddress].DeviceLockFile.Unlock()
-	f := s.devicemap[ipAddress].Datafile
-	if f != nil {
-		b, err := json.Marshal(s.devicemap[ipAddress])
-		if err != nil {
-			logrus.Errorf("Update data file %s", err)
-		} else {
-			err := f.Truncate(0)
-			if err != nil {
-				logrus.Errorf("err Trunate %s", err)
-				return
-			}
-			pos, err := f.Seek(0, 0)
-			if err != nil {
-				logrus.Errorf("err Seek %s", err)
-				return
-			}
-			fmt.Println("moved back to", pos)
-			n, err := f.Write(b)
-			if err != nil {
-				logrus.Errorf("err wrote %d bytes", n)
-				logrus.Errorf("write error to file %s", err)
-			}
-		}
-	} else {
-		logrus.Errorf("file handle is nil %s", ipAddress)
-	}
-}
-
-func (s *Server) saveDeviceDataFile(ipAddress string, data []string) {
-	s.devicemap[ipAddress].DeviceDataLockFile.Lock()
-	defer s.devicemap[ipAddress].DeviceDataLockFile.Unlock()
-	f := s.devicemap[ipAddress].DeviceDatafile
-	if f != nil {
-		if data == nil {
-			logrus.Errorf("saving device data is empty")
-		} else {
-			for _, str := range data {
-				b := []byte(str + "\n")
-				n, err := f.Write(b)
-				if err != nil {
-					logrus.Errorf("err wrote %d bytes", n)
-					logrus.Errorf("write error to file %s", err)
-				}
-			}
-		}
-	} else {
-		logrus.Errorf("file handle is nil %s", ipAddress)
-	}
-}
-
-func (s *Server) movePositionOfFileToBegin(deviceIPAddress string) error {
-	s.devicemap[deviceIPAddress].DeviceDataLockFile.Lock()
-	defer s.devicemap[deviceIPAddress].DeviceDataLockFile.Unlock()
-	f := s.devicemap[deviceIPAddress].DeviceDatafile
-	err := f.Truncate(0)
-	if err != nil {
-		logrus.Errorf("err Trunate %s", err)
-		return err
-	}
-	_, err = f.Seek(0, 0)
-	if err != nil {
-		logrus.Errorf("err Seek %s", err)
-		return err
-	}
-	return nil
-}
 
 func (s *Server) addPollingRfAPI(deviceIPAddress, authStr, rfAPI string) (statusNum int, err error) {
 	if len(rfAPI) == 0 {
@@ -153,7 +76,6 @@ func (s *Server) addPollingRfAPI(deviceIPAddress, authStr, rfAPI string) (status
 		}
 	}
 	s.devicemap[deviceIPAddress].RfAPIList = append(s.devicemap[deviceIPAddress].RfAPIList, rfAPI)
-	s.updateDataFile(deviceIPAddress)
 	return http.StatusOK, nil
 }
 
@@ -171,7 +93,6 @@ func (s *Server) removePollingRfAPI(deviceIPAddress, rfAPI string) (statusNum in
 			data = addSlashToTail(data)
 			if data == rfAPI {
 				s.devicemap[deviceIPAddress].RfAPIList = append(list[:key], list[key+1:]...)
-				s.updateDataFile(deviceIPAddress)
 				found = true
 				break
 			}
@@ -189,7 +110,6 @@ func (s *Server) removePollingRfAPI(deviceIPAddress, rfAPI string) (statusNum in
 
 func (s *Server) clearPollingRfAPI(deviceIPAddress string) (statusNum int, err error) {
 	s.devicemap[deviceIPAddress].RfAPIList = []string{}
-	s.updateDataFile(deviceIPAddress)
 	return http.StatusOK, nil
 }
 
@@ -217,7 +137,6 @@ func (s *Server) collectData(ipAddress string) {
 			logrus.Errorf("Failed to produce message:%s", err)
 		case <-ticker.C:
 			if s.devicemap[ipAddress].QueryState == true {
-				done := false
 				for _, resource := range s.devicemap[ipAddress].RfAPIList {
 					userAuthData := s.devicemap[ipAddress].QueryUser
 					if _, ipErr := s.getFunctionsResult("checkIPAddress", ipAddress, "", ""); ipErr != nil {
@@ -229,7 +148,6 @@ func (s *Server) collectData(ipAddress string) {
 							str = strings.Replace(str, "\n", "", -1)
 							str = strings.Replace(str, " ", "", -1)
 							data[index] = str
-							//This is embedded device IP to prefix of messages insteads of sending different Kafka topics
 							//str = "Device IP: " + ipAddress + " " + str
 							//logrus.Infof("collected data  %s", str)
 							logrus.Infof("collected data Device IP: %s %s ", ipAddress, str)
@@ -242,20 +160,6 @@ func (s *Server) collectData(ipAddress string) {
 								s.dataproducer.Input() <- msg
 							}
 						}
-						if done == false {
-							err := s.movePositionOfFileToBegin(ipAddress)
-							if err != nil {
-								return
-							}
-							done = true
-						}
-						for _, jsonData := range data {
-							dataSlice := []string{}
-							nowTime := time.Now()
-							jsonData = jsonData[1:]
-							dataSlice = append(dataSlice, "{\"DataTimestamp\":\""+nowTime.Format("01-02-2006 15:04:05.000")+"\","+jsonData)
-							s.saveDeviceDataFile(ipAddress, dataSlice)
-						}
 					}
 				}
 			}
@@ -265,90 +169,6 @@ func (s *Server) collectData(ipAddress string) {
 			s.devicemap[ipAddress].Datacollector.getdataend <- true
 			return
 		}
-	}
-}
-
-func getDataFile(ip string) *os.File {
-	logrus.Info("getDataFile")
-	if pvmount == "" {
-		return nil
-	}
-	f, err := os.OpenFile(subscriptionListPath+"/"+ip, os.O_CREATE|os.O_RDWR, 0664)
-	if err != nil {
-		logrus.Errorf("Open device file err %s", err)
-	}
-	return f
-}
-
-func (s *Server) removeDeviceFile(deviceIPAddress string) (err error) {
-	if len(s.devicemap) == 0 {
-		logrus.Errorf(ErrNoDevice.String())
-		return errors.New(ErrNoDevice.String())
-	}
-	s.devicemap[deviceIPAddress].DeviceLockFile.Lock()
-	defer s.devicemap[deviceIPAddress].DeviceLockFile.Unlock()
-	deviceFile := s.devicemap[deviceIPAddress].Datafile
-	if deviceFile != nil {
-		logrus.Infof("deleteing file %s", deviceFile.Name())
-		err := deviceFile.Close()
-		if err != nil {
-			logrus.Errorf(ErrCloseFile.String(deviceFile.Name(), err.Error()))
-		}
-		err = os.Remove(deviceFile.Name())
-		if err != nil {
-			logrus.Errorf(ErrDeleteFile.String(deviceFile.Name(), err.Error()))
-		}
-	} else {
-		logrus.Errorf(ErrDeviceFileNotFound.String(deviceIPAddress))
-	}
-	return err
-}
-
-func (s *Server) closeDataFiles() {
-	for ip := range s.devicemap {
-		s.devicemap[ip].Datafile.Close()
-	}
-}
-
-func getDeviceDataFile(ip string) *os.File {
-	logrus.Info("getDeviceDataFile")
-	if pvmount == "" {
-		return nil
-	}
-	f, err := os.OpenFile(deviceDataPath+"/"+ip, os.O_CREATE|os.O_RDWR, 0664)
-	if err != nil {
-		logrus.Errorf(ErrOpenDeviceFailed.String(err.Error()))
-	}
-	return f
-}
-
-func (s *Server) removeDeviceDataFile(deviceIPAddress string) (err error) {
-	if len(s.devicemap) == 0 {
-		logrus.Errorf(ErrNoDevice.String())
-		return errors.New(ErrNoDevice.String())
-	}
-	s.devicemap[deviceIPAddress].DeviceDataLockFile.Lock()
-	defer s.devicemap[deviceIPAddress].DeviceDataLockFile.Unlock()
-	deviceDataFile := s.devicemap[deviceIPAddress].DeviceDatafile
-	if deviceDataFile != nil {
-		logrus.Infof("deleteing device data file %s", deviceDataFile.Name())
-		err := deviceDataFile.Close()
-		if err != nil {
-			logrus.Errorf(ErrCloseDataFile.String(deviceDataFile.Name(), err.Error()))
-		}
-		err = os.Remove(deviceDataFile.Name())
-		if err != nil {
-			logrus.Errorf(ErrDeleteDataFile.String(deviceDataFile.Name(), err.Error()))
-		}
-	} else {
-		logrus.Errorf(ErrDeviceDataFileNotFound.String(deviceIPAddress))
-	}
-	return err
-}
-
-func (s *Server) closeDeviceDataFiles() {
-	for ip := range s.devicemap {
-		s.devicemap[ip].DeviceDatafile.Close()
 	}
 }
 
@@ -377,6 +197,5 @@ func (s *Server) setFrequency(deviceIPAddress string, frequency uint32) (statusN
 	}
 	s.devicemap[deviceIPAddress].Freqchan <- frequency
 	s.devicemap[deviceIPAddress].Freq = frequency
-	s.updateDataFile(deviceIPAddress)
 	return http.StatusOK, nil
 }

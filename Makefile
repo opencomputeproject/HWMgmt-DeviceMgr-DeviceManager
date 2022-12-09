@@ -59,8 +59,6 @@ K8S_VERSION     ?= "1.21.0"
 CNI_VERSION     ?= "0.8.7-00"
 HELM_VERSION    ?= "v3.5.4"
 CALICO_IPAM ?= 192.168.0.0/16
-KAFKA_CHART_VERSION  ?= 0.21.5
-KAFKA_SERVICE_URL=cord-kafka-0.cord-kafka-headless.manager.svc.cluster.local
 LOCAL_DIR=/usr/local
 GO_DIR=${LOCAL_DIR}/go
 PROTOC_VERSION=3.7.0
@@ -89,8 +87,6 @@ help:
 	@echo "dm                   : Add device-management pod"
 	@echo "clean-dm             : Remove device-management pod"
 	@echo "build-dm             : Build device-management docker image"
-	@echo "dpv                  : Add device persistent volume"
-	@echo "clean-dpv            : Add device persistent volume"
 	@echo "reset-pods           : Remove all kubernetes pods (need sudo password)"
 	@echo "status               : Look the all Pods status"
 	@echo
@@ -107,10 +103,10 @@ help:
 
 all: init /usr/bin/docker go-install prereq install
 install: reset-pods install_all
-k8s: restart-docker resolv-file /usr/bin/kubeadm kubeadm /usr/local/bin/helm helm kafka
+k8s: restart-docker /usr/bin/kubeadm kubeadm /usr/local/bin/helm helm
 
 install_all:
-	make k8s build-dm dpv dm status
+	make k8s build-dm dm status
 
 init:
 	sudo apt -y update
@@ -197,34 +193,16 @@ helm: /usr/local/bin/helm
 	helm repo add incubator https://charts.helm.sh/incubator --force-update
 	helm repo update
 
-kafka:
-	cd $(WORKSPACE)/helm-charts && \
-	helm upgrade --version $(KAFKA_CHART_VERSION) --install --create-namespace -n manager -f kafka/kafka-single.yaml cord-kafka incubator/kafka
-	@until kubectl -n manager get pods | grep zookeeper | awk -F" " '{print $3}' | grep "Running" >& /dev/null; \
-	do \
-		echo "Waiting for Zookeeper to be ready"; \
-		sleep 5; \
-	done
-	@until kubectl -n manager get pods | grep cord-kafka-0 | awk -F" " '{print $3}' | grep "Running" >& /dev/null; \
-	do \
-		echo "Waiting for Kafka to be ready"; \
-		sleep 5; \
-	done
-
-dm: dpv
+dm:
 ifeq (,$(call CHART_STATUS,"device-management"))
 	cd $(WORKSPACE)/helm-charts && \
 	helm upgrade -n manager --install --create-namespace --set images.device_management.pullPolicy='IfNotPresent' --set images.device_management.tag=${VERSION} device-management device-management
 	@echo -n "Waiting for loading Device-Manager... "
-	@until kubectl -n manager exec `kubectl -n manager get pods -o=jsonpath='{.items[2].metadata.name}'` -- \
-		nc -z -v $(KAFKA_SERVICE_URL) 9092 2>&1 | grep "open" >& /dev/null; \
-	do \
-		sleep 2; \
-	done
+#	wait for DM
 	@echo "Done"
 endif
 
-clean-dm: clean-dpv
+clean-dm:
 ifneq (,$(call CHART_STATUS,"device-management"))
 	@helm -n manager uninstall device-management
 	@echo -n "Waiting for unloading Device-Manager... "
@@ -235,49 +213,7 @@ ifneq (,$(call CHART_STATUS,"device-management"))
 	@echo "Done"
 endif
 
-dpv:
-ifeq (,$(call CHART_STATUS,"devices-pv"))
-ifeq "$(wildcard $(DEVICE_DIR))" ""
-	sudo mkdir -p $(DEVICE_DIR)
-endif
-	@cd $(WORKSPACE)/helm-charts/storage && \
-	helm -n manager install devices-pv ./local-directory
-	@echo -n "Waiting for loading device persistent volume... "
-	@until helm -n manager ls -q | grep devices-pv >& /dev/null; \
-	do \
-		sleep 2; \
-	done
-	@echo "Done"
-endif
-
-clean-dpv:
-ifneq (,$(call CHART_STATUS,"devices-pv"))
-	sudo rm -rf $(DEVICE_DIR)
-	@helm -n manager uninstall devices-pv
-	@echo -n "Waiting for unloading device persistent volume... "
-	@until ! helm -n manager ls -q | grep devices-pv >& /dev/null; \
-	do \
-		sleep 2; \
-	done
-	@echo "Done"
-endif
-
-clean-kafka:
-ifneq (,$(call CHART_STATUS,"cord-kafka"))
-	@helm -n manager uninstall cord-kafka; \
-	sleep 2
-	@until ! kubectl -n manager get pods | grep cord-kafka-0 >& /dev/null; \
-	do \
-		sleep 5; \
-	done
-	@until ! kubectl -n manager get pods | grep zookeeper >& /dev/null; \
-	do \
-		sleep 5; \
-	done
-	@echo "Done"
-endif
-
-clean: clean-kafka clean-dpv clean-dm
+clean: clean-dm
 
 reset-pods: /usr/bin/kubeadm /usr/bin/docker clean
 	sudo kubeadm reset -f || true
@@ -297,7 +233,7 @@ device-manager-binary: protos
 	@cd src; \
 	GOROOT=${GO_DIR} GOPATH=$(HOME)/app GO111MODULE=on CGO_ENABLED=0 GOOS=linux ${GO_BIN_PATH}/go build -mod=vendor -o ../apps/main .
 
-build-dm: resolv-file device-manager-binary
+build-dm: device-manager-binary
 	docker build $(DOCKER_BUILD_ARGS) \
 	-t ${DOCKER_IMAGENAME} \
 	--build-arg org_label_schema_version="${VERSION}" \
@@ -308,12 +244,6 @@ build-dm: resolv-file device-manager-binary
 
 status:
 	kubectl get pods --all-namespaces -o wide
-
-resolv-file:
-	@chk_nameserver="$(shell cat /etc/resolv.conf | grep 'nameserver 8.8.8.8')"; \
-	if [ -z "$$chk_nameserver" ]; then \
-		sudo sh -c "echo nameserver 8.8.8.8 > /etc/resolv.conf"; \
-	fi
 
 restart-docker: /usr/bin/docker
 	sudo systemctl restart docker

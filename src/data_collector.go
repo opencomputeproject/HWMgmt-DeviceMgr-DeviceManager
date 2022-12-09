@@ -193,16 +193,10 @@ func (s *Server) getDataFromCache(deviceDataFile *os.File, RfAPI string) (status
 }
 
 func (s *Server) getDeviceDataByFileData(deviceIPAddress, RfAPI string) (statusNum int, retData []string, err error) {
-	retData = nil
-	deviceDataFile := s.devicemap[deviceIPAddress].DeviceDatafile
-	if deviceDataFile == nil {
-		logrus.Errorf(ErrDeviceDataFileNotFound.String(deviceIPAddress))
-		return http.StatusNotFound, retData, errors.New(ErrDeviceDataFileNotFound.String(deviceIPAddress))
-	}
-	s.devicemap[deviceIPAddress].DeviceDataLockFile.Lock()
-	statusNum, retData, err = s.getDataFromCache(deviceDataFile, RfAPI)
-	s.devicemap[deviceIPAddress].DeviceDataLockFile.Unlock()
-	return http.StatusOK, retData, nil
+	// TODO: DeviceDataFile was removed due to integration with ODIM's services.
+	// TODO: Replace this code once integration is done.
+	logrus.Errorf(ErrDeviceDataFileNotFound.String(deviceIPAddress))
+	return http.StatusNotFound, retData, errors.New(ErrDeviceDataFileNotFound.String(deviceIPAddress))
 }
 
 func (s *Server) genericDeviceAccess(deviceIPAddress, RfAPI, authStr string, httpMethod string,

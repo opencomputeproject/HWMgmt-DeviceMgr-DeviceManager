@@ -43,7 +43,6 @@ import (
 
 //GlobalConfigSpec  ...
 type GlobalConfigSpec struct {
-	Kafka     string `yaml:"kafka"`
 	Local     string `yaml:"local"`
 	LocalGrpc string `yaml:"localgrpc"`
 }
@@ -51,14 +50,12 @@ type GlobalConfigSpec struct {
 //GlobalConfig ...
 var (
 	GlobalConfig = GlobalConfigSpec{
-		Kafka:     "cord-kafka-0.cord-kafka-headless.manager.svc.cluster.local:9092",
 		Local:     "0.0.0.0:8080",
 		LocalGrpc: "0.0.0.0:50051",
 	}
 	GlobalCommandOptions = make(map[string]map[string]string)
 	GlobalOptions        struct {
 		Config    string `short:"c" long:"config" env:"PROXYCONFIG" value-name:"FILE" default:"" description:"Location of proxy config file"`
-		Kafka     string `short:"k" long:"kafka" default:"" value-name:"SERVER:PORT" description:"IP/Host and port of Kafka"`
 		Local     string `short:"l" long:"local" default:"" value-name:"SERVER:PORT" description:"IP/Host and port to listen on for http"`
 		LocalGrpc string `short:"g" long:"localgrpc" default:"" value-name:"SERVER:PORT" description:"IP/Host and port to listen on for grpc"`
 	}
@@ -352,9 +349,6 @@ func ProcessGlobalOptions() {
 				GlobalOptions.Config, err.Error())
 		}
 	}
-	if GlobalOptions.Kafka != "" {
-		GlobalConfig.Kafka = GlobalOptions.Kafka
-	}
 	if GlobalOptions.Local != "" {
 		GlobalConfig.Local = GlobalOptions.Local
 	}
@@ -366,7 +360,6 @@ func ProcessGlobalOptions() {
 //ShowGlobalOptions ...
 func ShowGlobalOptions() {
 	log.Printf("Configuration:")
-	log.Printf("    Kafka: %v", GlobalConfig.Kafka)
 	log.Printf("    Listen Address: %v", GlobalConfig.Local)
 	log.Printf("    Grpc Listen Address: %v", GlobalConfig.LocalGrpc)
 }

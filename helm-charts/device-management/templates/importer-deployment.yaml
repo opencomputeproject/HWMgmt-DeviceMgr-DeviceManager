@@ -49,30 +49,3 @@ spec:
               containerPort: 50051
               protocol: TCP
           env:
-{{- if .Values.needPersistence }}
-          - name: DEVICE_MANAGEMENT_PVMOUNT
-            value: {{ .Values.device_management_pv_mount | quote }}
-          volumeMounts:
-          - name: device-management-persistent-storage
-            mountPath: {{ .Values.device_management_pv_mount | quote }}
-      volumes:
-        - name: device-management-persistent-storage
-          persistentVolumeClaim:
-            claimName: {{ .Values.pvClaimName }}
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ .Values.pvClaimName }}
-spec:
-{{- if .Values.useCeph }}
-  storageClassName: {{ .Values.storageCephClassName }}
-{{- else }}
-  storageClassName: {{ .Values.storageLDClassName }}
-{{- end }}
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2Gi
-{{- end }}

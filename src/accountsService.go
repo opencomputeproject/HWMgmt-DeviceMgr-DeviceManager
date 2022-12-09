@@ -363,7 +363,6 @@ func (s *Server) removeDeviceAccount(deviceIPAddress string, authStr string, rem
 	userLoginInfo := s.devicemap[deviceIPAddress].UserLoginInfo
 	if _, found := userLoginInfo[removeUser]; found {
 		delete(s.devicemap[deviceIPAddress].UserLoginInfo, removeUser)
-		s.updateDataFile(deviceIPAddress)
 	}
 	return statusCode, nil
 }
@@ -461,7 +460,6 @@ func (s *Server) loginDevice(deviceIPAddress, loginUserName, loginPassword strin
 			if status, errors := s.deleteDeviceSession(deviceIPAddress, authStr, loginUserName, userAuthData); errors != nil {
 				return "", status, errors
 			}
-			s.updateDataFile(deviceIPAddress)
 			s.devicemap[deviceIPAddress].QueryUser = userAuthData
 		} else {
 			logrus.Errorf(ErrUserAuthNotFound.String(strconv.Itoa(statusCode)))
@@ -491,7 +489,6 @@ func (s *Server) logoutDevice(deviceIPAddress, authStr, logoutUserName string) (
 		userLoginInfo := s.devicemap[deviceIPAddress].UserLoginInfo
 		if _, found := userLoginInfo[logoutUserName]; found {
 			delete(s.devicemap[deviceIPAddress].UserLoginInfo, logoutUserName)
-			s.updateDataFile(deviceIPAddress)
 		}
 	} else {
 		return http.StatusBadRequest, errors.New(ErrUserIsBasicAuth.String())
@@ -517,7 +514,6 @@ func (s *Server) changeDeviceUserPassword(deviceIPAddress, authStr, chgUsername,
 		} else {
 			userAuthData.Password = chgPassword
 			s.devicemap[deviceIPAddress].UserLoginInfo[chgUsername] = userAuthData
-			s.updateDataFile(deviceIPAddress)
 		}
 	}
 	return statusCode, nil
