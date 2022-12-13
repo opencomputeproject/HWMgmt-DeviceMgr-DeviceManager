@@ -22,6 +22,7 @@ package main
 
 import (
 	"devicemanager/config"
+	"devicemanager/rest"
 	"net"
 	"os"
 	"os/signal"
@@ -138,16 +139,17 @@ func main() {
 	}
 	logrus.Info("Starting Device Manager")
 
-	if _, err := config.LoadConfiguration(); err != nil {
-		logrus.Fatal("error while loading config", err)
+	if conf, err := config.LoadConfiguration(); err != nil {
+		logrus.Fatal("error while loading config: ", err)
 	} else {
-		ParseCommandLine()
-		ProcessGlobalOptions()
-		ShowGlobalOptions()
-		s := Server{
-			devicemap: make(map[string]*device),
-		}
-		go s.startGrpcServer()
+		rest.InitializeAndRunApplication(conf)
+		//ParseCommandLine()
+		//ProcessGlobalOptions()
+		//ShowGlobalOptions()
+		//s := Server{
+		//	devicemap: make(map[string]*device),
+		//}
+		//go s.startGrpcServer()
 		quit := make(chan os.Signal, 10)
 		signal.Notify(quit, os.Interrupt)
 		sig := <-quit

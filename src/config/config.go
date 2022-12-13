@@ -20,6 +20,7 @@ type Config struct {
 	OdimURL            string   `yaml:"OdimURL"`
 	OdimUserName       string   `yaml:"OdimUserName"`
 	OdimPassword       string   `yaml:"OdimPassword"`
+	FirmwareVersion    string   `yaml:"FirmwareVersion"`
 	TLSConf            *TLSConf `yaml:"TLSConf"`
 	RSAPrivateKeyPath  string   `yaml:"RSAPrivateKeyPath"`
 	RSAPublicKeyPath   string   `yaml:"RSAPublicKeyPath"`
@@ -108,6 +109,10 @@ func validateConfig(config *Config) error {
 
 	if config.OdimPassword == "" {
 		return fmt.Errorf("missing value for OdimPassword")
+	}
+
+	if config.FirmwareVersion == "" {
+		return fmt.Errorf("missing value for FirmwareVersion")
 	}
 
 	if config.TLSConf == nil {
