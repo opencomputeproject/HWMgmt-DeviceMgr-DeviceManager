@@ -1,0 +1,34 @@
+### Device Manager configuration file
+Host: odimra.local
+Port: 45003
+
+RSAPrivateKeyPath: "/etc/plugincert/odimra_rsa.private"
+RSAPublicKeyPath: "/etc/plugincert/odimra_rsa.public"
+
+PKIRootCACertificatePath: "/etc/plugincert/rootCA.crt"
+PKIPrivateKeyPath: "/etc/plugincert/odimra_server.key"
+PKICertificatePath: "/etc/plugincert/odimra_server.crt"
+
+TLSConf:
+  ### Supported TLS versions:
+  #	VersionTLS12 = 0x0303
+  #	VersionTLS13 = 0x0304
+  MinVersion: 0x0303
+  MaxVersion: 0x0303
+
+### Basic Authentication
+UserName: admin
+Password: O01bKrP7Tzs7YoO3YvQt4pRa2J_R6HI34ZfP4MxbqNIYAVQVt2ewGXmhjvBfzMifM7bHFccXKGmdHvj3hY44Hw==
+
+### Redfish service root UUID for Device Manager
+RootServiceUUID: 99999999-9999-9999-9999-999999999999
+
+# Configuration for ODIM's NB interface
+OdimURL: https://odimra.local:45000
+OdimUserName: admin
+###
+# OdimPassword variable contains encoded and encrypted password matching to the OdimUserName
+# Raw password would be encoded and encrypted using following command:
+# echo -n "MySecretPassword" |openssl pkeyutl -encrypt -inkey private.key -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha512|openssl base64 -A
+##
+OdimPassword: #password#
