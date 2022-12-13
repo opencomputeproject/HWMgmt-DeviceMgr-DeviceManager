@@ -8,8 +8,11 @@ import (
 	"net/http"
 )
 
-func InitializeAndRunApplication(config *config.Config) {
+func InitializeAndRunApplication(config config.Config) {
 	app := iris.New()
+
+	app.UseRouter(newLoggingHandler())
+
 	app.WrapRouter(trailingSlashRouter)
 	createRouting(app, config)
 
@@ -21,19 +24,23 @@ func InitializeAndRunApplication(config *config.Config) {
 	app.Run(iris.Server(server))
 }
 
-func createRouting(app *iris.Application, config *config.Config) {
+func createRouting(app *iris.Application, config config.Config) {
 	basicAuthHandler := newBasicAuthHandler(config.UserName, config.Password)
 	routes := app.Party("/ODIM/v1")
 	{
 		systems := routes.Party("/Systems", basicAuthHandler)
 		systems.Get("")
+
+		managers := routes.Party("/Managers", basicAuthHandler)
+		managers.Get("", newManagersCollectionHandler(config))
+		managers.Get("/{id}", newManagerHandler(config))
 	}
 
 	routes.Get("/Status", newStatusHandler(config))
 	routes.Post("/Startup", basicAuthHandler, newStartupHandler())
 }
 
-func newHttpServer(c *config.Config) (*http.Server, error) {
+func newHttpServer(c config.Config) (*http.Server, error) {
 	serverConfig := &odimConfig.HTTPConfig{
 		Certificate:   &c.PKICertificate,
 		PrivateKey:    &c.PKIPrivateKey,

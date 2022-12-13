@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const deviceManagerName = "DeviceManager"
+const deviceManagerName = "Device Manager"
 
 // StatusResponse holds the information of response of Device Manager Status
 type StatusResponse struct {
@@ -65,7 +65,7 @@ func (sh statusHandler) handle(ctx iris.Context) {
 	ctx.JSON(resp)
 }
 
-func newStatusHandler(cfg *config.Config) context.Handler {
+func newStatusHandler(cfg config.Config) context.Handler {
 	timeNow := time.Now()
 	status := new(Status)
 	status.Init()
