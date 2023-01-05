@@ -144,12 +144,12 @@ func (h *HttpClient) Post(uri string, requestBody []byte) (*http.Response, error
 }
 
 func translateRequest(req *http.Request) error {
-	req.URL, _ = url.Parse(utils.UriTranslator.DmToRedfish(req.URL.String()))
+	req.URL, _ = url.Parse(utils.UriConverter.DmToRedfish(req.URL.String()))
 
 	for hk, hv := range req.Header {
 		var translatedHeader []string
 		for _, v := range hv {
-			translatedHeader = append(translatedHeader, utils.UriTranslator.DmToRedfish(v))
+			translatedHeader = append(translatedHeader, utils.UriConverter.DmToRedfish(v))
 		}
 
 		req.Header[hk] = translatedHeader
@@ -161,7 +161,7 @@ func translateRequest(req *http.Request) error {
 			return err
 		}
 
-		translatedBody := utils.UriTranslator.DmToRedfish(string(body))
+		translatedBody := utils.UriConverter.DmToRedfish(string(body))
 		req.Body = io.NopCloser(bytes.NewBuffer([]byte(translatedBody)))
 	}
 
@@ -175,7 +175,7 @@ func translateResponse(resp *http.Response) error {
 		return err
 	}
 
-	translated := utils.UriTranslator.RedfishToDm(string(responseBody))
+	translated := utils.UriConverter.RedfishToDm(string(responseBody))
 	resp.Body = io.NopCloser(bytes.NewBuffer([]byte(translated)))
 
 	return nil
