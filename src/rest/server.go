@@ -46,6 +46,7 @@ func createRouting(app *iris.Application, config config.Config) {
 		systems.Get("/{id}/PCIeDevices/{id2}", getGenericResourceHandler)
 		systems.Get("/{id}/Bios", getGenericResourceHandler)
 		systems.Get("/{id}/Bios/Settings", getGenericResourceHandler)
+		systems.Post("/{id}/Actions/ComputerSystem.Reset", newResetComputerSystemHandler(config))
 
 		ethernetInterfaces := systems.Party("/{id}/EthernetInterfaces")
 		ethernetInterfaces.Get("", getGenericResourceHandler)
