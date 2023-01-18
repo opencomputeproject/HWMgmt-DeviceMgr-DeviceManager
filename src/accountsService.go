@@ -192,7 +192,7 @@ func (s *Server) deleteDeviceSession(deviceIPAddress, authStr, userName string, 
 	id, status, statusCode, err := s.getUserLoginID(deviceIPAddress, authStr, userName)
 	if err == nil && status == true {
 		_, statusCode, err = deleteHTTPDataByRfAPI(deviceIPAddress, RfSessionServiceSessions, userAuthData, id)
-		if statusCode != http.StatusOK {
+		if statusCode != http.StatusOK && statusCode != http.StatusNoContent && statusCode != http.StatusAccepted {
 			logrus.Errorf(ErrDeleteLoginFailed.String(id, strconv.Itoa(statusCode)))
 			return statusCode, errors.New(ErrDeleteLoginFailed.String(id, strconv.Itoa(statusCode)))
 		}
