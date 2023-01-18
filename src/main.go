@@ -21,12 +21,8 @@
 package main
 
 import (
-	"crypto/tls"
-	"sync"
-
-	"io/ioutil"
+	"devicemanager/config"
 	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -35,15 +31,11 @@ import (
 
 	manager "devicemanager/proto"
 
-	"github.com/Shopify/sarama"
-
 	logrus "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
 var (
-	//lock ...
-	lock sync.Mutex
 	//managerTopic ...
 	managerTopic = "manager"
 )
@@ -66,33 +58,6 @@ func (s *Server) startGrpcServer() {
 	manager.RegisterDeviceManagementServer(gserver, s)
 	if err := gserver.Serve(listener); err != nil {
 		logrus.Errorf("Failed to run gRPC server: %s ", err)
-		panic(err)
-	}
-}
-
-func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt)
-	logrus.Info(" IN Handle Event  ")
-	if r.Method == "POST" {
-		Body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			logrus.Errorf("Error getting HTTP data %s", err)
-		}
-		defer r.Body.Close()
-		message := &sarama.ProducerMessage{
-			Topic: managerTopic,
-			Value: sarama.StringEncoder(Body),
-		}
-		s.dataproducer.Input() <- message
-	}
-}
-
-func (s *Server) runServer() {
-	logrus.Info("Starting HTTP Server")
-	http.HandleFunc("/", s.handleEvents)
-	err := http.ListenAndServeTLS(GlobalConfig.Local, "https-server.crt", "https-server.key", nil)
-	if err != nil {
 		panic(err)
 	}
 }
@@ -163,24 +128,29 @@ func init() {
 	Formatter.TimestampFormat = "02-01-2006 15:04:05.000000"
 	Formatter.FullTimestamp = true
 	logrus.SetFormatter(Formatter)
-	logrus.Info("log Connecting to broker:")
-	logrus.Info("log Listening to  http server ")
-	//sarama.Logger = log.New()
+	logrus.SetLevel(logrus.DebugLevel)
 }
 
 func main() {
-	logrus.Info("Starting Device-management Container")
-	ParseCommandLine()
-	ProcessGlobalOptions()
-	ShowGlobalOptions()
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	s := Server{
-		devicemap: make(map[string]*device),
+	// Verify user ID.
+	if os.Geteuid() == 0 {
+		logrus.Fatal("Device Manager should not run with root privileges")
 	}
-	go s.runServer()
-	go s.startGrpcServer()
-	quit := make(chan os.Signal, 10)
-	signal.Notify(quit, os.Interrupt)
-	sig := <-quit
-	logrus.Infof("Shutting down:%d", sig)
+	logrus.Info("Starting Device Manager")
+
+	if _, err := config.LoadConfiguration(); err != nil {
+		logrus.Fatal("error while loading config", err)
+	} else {
+		ParseCommandLine()
+		ProcessGlobalOptions()
+		ShowGlobalOptions()
+		s := Server{
+			devicemap: make(map[string]*device),
+		}
+		go s.startGrpcServer()
+		quit := make(chan os.Signal, 10)
+		signal.Notify(quit, os.Interrupt)
+		sig := <-quit
+		logrus.Infof("Shutting down:%d", sig)
+	}
 }
