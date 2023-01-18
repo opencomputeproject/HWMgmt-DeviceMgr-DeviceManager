@@ -31,12 +31,3 @@ images:
 
 device_management_grpcPort: 31085
 device_management_httpPort: 32033
-device_management_replicas: 1
-device_management_pv_mount: '/var/devices_data'
-
-# persistence related vars
-needPersistence: true 
-useCeph: false
-pvClaimName: device-management-pv-claim
-storageLDClassName: local-directory
-storageCephClassName: cord-ceph-rbd

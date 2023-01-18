@@ -24,7 +24,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -63,21 +62,17 @@ type userAuth struct {
 }
 
 type device struct {
-	Freq               uint32              `json:"frequency"`
-	Datacollector      scheduler           `json:"-"`
-	Freqchan           chan uint32         `json:"-"`
-	Datafile           *os.File            `json:"-"`
-	DeviceDatafile     *os.File            `json:"-"`
-	UserLoginInfo      map[string]userAuth `json:"userlogin"`
-	QueryState         bool                `json:"-"`
-	QueryUser          userAuth            `json:"-"`
-	DeviceLockFile     sync.Mutex          `json:"-"`
-	DeviceDataLockFile sync.Mutex          `json:"-"`
-	RfAPIList          []string            `json:"redfishAPIList"`
-	ContentType        string              `json:"ContentType"`
-	HTTPType           string              `json:"HTTPType"`
-	UserAuthLock       sync.Mutex          `json:"-"`
-	PassAuth           bool                `json:"passAuth"`
+	Freq          uint32              `json:"frequency"`
+	Datacollector scheduler           `json:"-"`
+	Freqchan      chan uint32         `json:"-"`
+	UserLoginInfo map[string]userAuth `json:"userlogin"`
+	QueryState    bool                `json:"-"`
+	QueryUser     userAuth            `json:"-"`
+	RfAPIList     []string            `json:"redfishAPIList"`
+	ContentType   string              `json:"ContentType"`
+	HTTPType      string              `json:"HTTPType"`
+	UserAuthLock  sync.Mutex          `json:"-"`
+	PassAuth      bool                `json:"passAuth"`
 }
 
 //Server ...
@@ -113,7 +108,6 @@ func (s *Server) SetHTTPType(c context.Context, device *manager.Device) (*empty.
 	httpType = httpType + "://"
 	s.devicemap[ipAddress].HTTPType = httpType
 	RfProtocol[ipAddress] = s.devicemap[ipAddress].HTTPType
-	s.updateDataFile(ipAddress)
 	return &empty.Empty{}, nil
 }
 
@@ -158,7 +152,6 @@ func (s *Server) SetHTTPApplication(c context.Context, device *manager.Device) (
 	}
 	s.devicemap[ipAddress].ContentType = contentType
 	ContentType[ipAddress] = s.devicemap[ipAddress].ContentType
-	s.updateDataFile(ipAddress)
 	return &empty.Empty{}, nil
 }
 
@@ -229,24 +222,6 @@ func (s *Server) DeleteDeviceList(c context.Context, device *manager.Device) (*e
 			return &empty.Empty{}, err
 		}
 	}
-	logrus.Infof("deleting device info file %s", ipAddress)
-	err := s.removeDeviceFile(ipAddress)
-	if err != nil {
-		errStatus, _ := status.FromError(err)
-		logrus.WithFields(logrus.Fields{
-			"IP address:port": ipAddress,
-		}).Error(errStatus.Message())
-		return &empty.Empty{}, status.Errorf(codes.Code(http.StatusNotFound), errStatus.Message())
-	}
-	logrus.Infof("deleting device data file %s", ipAddress)
-	err = s.removeDeviceDataFile(ipAddress)
-	if err != nil {
-		errStatus, _ := status.FromError(err)
-		logrus.WithFields(logrus.Fields{
-			"IP address:port": ipAddress,
-		}).Error(errStatus.Message())
-		return &empty.Empty{}, status.Errorf(codes.Code(http.StatusNotFound), errStatus.Message())
-	}
 	statusCode, err := s.setSessionService(ipAddress, authStr, false, uint64(RfSessionTimeOut))
 	if err != nil && statusCode != http.StatusOK {
 		errStatus, _ := status.FromError(err)
@@ -307,16 +282,13 @@ func (s *Server) SendDeviceList(c context.Context, list *manager.DeviceList) (*e
 			s.devicemap[ipAddress].Datacollector.getdata.Stop()
 		}
 		s.devicemap[ipAddress].PassAuth = dev.PassAuth
-		s.devicemap[ipAddress].DeviceDatafile = getDeviceDataFile(ipAddress)
 		s.devicemap[ipAddress].QueryState = false
 		go s.collectData(ipAddress)
-		s.devicemap[ipAddress].Datafile = getDataFile(ipAddress)
 		s.devicemap[ipAddress].RfAPIList = redfishResources
 		RfProtocol[ipAddress] = RfDefaultHttpsProtocol
 		s.devicemap[ipAddress].HTTPType = RfDefaultHttpsProtocol
 		ContentType[ipAddress] = DefaultContentType
 		s.devicemap[ipAddress].ContentType = DefaultContentType
-		s.updateDataFile(ipAddress)
 	}
 	return &empty.Empty{}, nil
 }
