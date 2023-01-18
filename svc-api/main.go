@@ -58,7 +58,7 @@ func main() {
 			for _, item := range urlNoBasicAuth {
 				if item == path {
 					authRequired = false
-					log.Warn("Basic auth is provided but not used as URL is: " + path)
+					log.Warn("Basic auth is provided but not used as URL is: " + item)
 					break
 				}
 			}
