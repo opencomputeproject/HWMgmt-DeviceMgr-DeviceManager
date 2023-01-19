@@ -16,6 +16,7 @@ type Config struct {
 	UserName           string   `yaml:"UserName"`
 	Password           string   `yaml:"Password"`
 	RootServiceUUID    string   `yaml:"RootServiceUUID"`
+	FirmwareVersion    string   `yaml:"FirmwareVersion"`
 	TLSConf            *TLSConf `yaml:"TLSConf"`
 	PKIRootCAPath      string   `yaml:"PKIRootCACertificatePath"`
 	PKIPrivateKeyPath  string   `yaml:"PKIPrivateKeyPath"`
@@ -88,6 +89,10 @@ func validateConfig(config *Config) error {
 		return fmt.Errorf("missing value for RootServiceUUID")
 	} else if _, err := uuid.Parse(config.RootServiceUUID); err != nil {
 		return err
+	}
+
+	if config.FirmwareVersion == "" {
+		return fmt.Errorf("missing value for FirmwareVersion")
 	}
 
 	if config.TLSConf == nil {
