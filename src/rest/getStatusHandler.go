@@ -66,12 +66,11 @@ func (sh statusHandler) handle(ctx iris.Context) {
 }
 
 func newStatusHandler(cfg config.Config) context.Handler {
-	timeNow := time.Now()
 	status := new(Status)
 	status.Init()
 	return statusHandler{
 		status:          status,
-		startupTime:     timeNow,
+		startupTime:     time.Now(),
 		firmwareVersion: cfg.FirmwareVersion,
 	}.handle
 }
