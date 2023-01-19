@@ -142,7 +142,7 @@ func main() {
 	if conf, err := config.LoadConfiguration(); err != nil {
 		logrus.Fatal("error while loading config: ", err)
 	} else {
-		rest.InitializeAndRunApplication(conf)
+		rest.InitializeAndRunApplication(*conf)
 
 		quit := make(chan os.Signal, 10)
 		signal.Notify(quit, os.Interrupt)

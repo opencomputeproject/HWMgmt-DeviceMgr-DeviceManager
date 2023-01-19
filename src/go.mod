@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/ODIM-Project/ODIM/lib-utilities v0.0.0-20220905064038-7d38588674bd
+	github.com/ODIM-Project/ODIM/lib-dmtf v0.0.0-00010101000000-000000000000
 	github.com/Shopify/sarama v1.28.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.0
@@ -18,15 +19,16 @@ require (
 )
 
 require (
+	github.com/dgraph-io/badger v1.6.0 // indirect
+	github.com/etcd-io/bbolt v1.3.3 // indirect
+	github.com/gavv/httpexpect v2.0.0+incompatible // indirect
 	github.com/magefile/mage v1.10.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
-	github.com/dgraph-io/badger v1.6.0 // indirect
-	github.com/etcd-io/bbolt v1.3.3 // indirect
-	github.com/gavv/httpexpect v2.0.0+incompatible // indirect
 )
 
 replace (
+	github.com/ODIM-Project/ODIM/lib-dmtf => ../lib-dmtf
 	github.com/ODIM-Project/ODIM/lib-utilities => ../lib-utilities
 )
