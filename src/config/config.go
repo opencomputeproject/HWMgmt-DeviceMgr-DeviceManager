@@ -6,7 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
-	"net/url"
 	"os"
 )
 
@@ -17,13 +16,8 @@ type Config struct {
 	UserName           string   `yaml:"UserName"`
 	Password           string   `yaml:"Password"`
 	RootServiceUUID    string   `yaml:"RootServiceUUID"`
-	OdimURL            string   `yaml:"OdimURL"`
-	OdimUserName       string   `yaml:"OdimUserName"`
-	OdimPassword       string   `yaml:"OdimPassword"`
 	FirmwareVersion    string   `yaml:"FirmwareVersion"`
 	TLSConf            *TLSConf `yaml:"TLSConf"`
-	RSAPrivateKeyPath  string   `yaml:"RSAPrivateKeyPath"`
-	RSAPublicKeyPath   string   `yaml:"RSAPublicKeyPath"`
 	PKIRootCAPath      string   `yaml:"PKIRootCACertificatePath"`
 	PKIPrivateKeyPath  string   `yaml:"PKIPrivateKeyPath"`
 	PKICertificatePath string   `yaml:"PKICertificatePath"`
@@ -97,20 +91,6 @@ func validateConfig(config *Config) error {
 		return err
 	}
 
-	if config.OdimURL == "" {
-		return fmt.Errorf("missing value for OdimURL")
-	} else if _, e := url.Parse(config.OdimURL); e != nil {
-		return e
-	}
-
-	if config.OdimUserName == "" {
-		return fmt.Errorf("missing value for OdimUserName")
-	}
-
-	if config.OdimPassword == "" {
-		return fmt.Errorf("missing value for OdimPassword")
-	}
-
 	if config.FirmwareVersion == "" {
 		return fmt.Errorf("missing value for FirmwareVersion")
 	}
@@ -118,6 +98,7 @@ func validateConfig(config *Config) error {
 	if config.TLSConf == nil {
 		return fmt.Errorf("missing TLSConf, setting default value")
 	}
+
 	if config.TLSConf.MinVersion == 0 || config.TLSConf.MinVersion == 0x0301 || config.TLSConf.MinVersion == 0x0302 {
 		return fmt.Errorf("configured TLSConf.MinVersion is wrong")
 	}
