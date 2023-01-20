@@ -463,7 +463,6 @@ func (s *Server) CreateDeviceAccount(c context.Context, account *manager.DeviceA
 		errStatus, _ := status.FromError(err)
 		logrus.WithFields(logrus.Fields{
 			"Username": newUsername,
-			"Password": newPassword,
 		}).Error(errStatus.Message())
 		return &empty.Empty{}, status.Errorf(codes.Code(statusCode), errStatus.Message())
 	}
@@ -539,7 +538,6 @@ func (s *Server) LoginDevice(c context.Context, account *manager.DeviceAccount) 
 		logrus.WithFields(logrus.Fields{
 			"IP address:port": ipAddress,
 			"Username":        loginUserName,
-			"Password":        loginPassword,
 		}).Error(errStatus.Message())
 		return nil, status.Errorf(codes.Code(statusCode), errStatus.Message())
 	}
@@ -615,7 +613,6 @@ func (s *Server) ChangeDeviceUserPassword(c context.Context, account *manager.De
 		errStatus, _ := status.FromError(err)
 		logrus.WithFields(logrus.Fields{
 			"Username": userName,
-			"Password": password,
 		}).Error(errStatus.Message())
 		return &empty.Empty{}, status.Errorf(codes.Code(statusCode), errStatus.Message())
 	}
@@ -690,6 +687,16 @@ func (s *Server) GetDeviceData(c context.Context, device *manager.Device) (*mana
 	if device == nil || len(device.IpAddress) == 0 {
 		return nil, status.Errorf(http.StatusBadRequest, ErrDeviceData.String())
 	}
+	if !s.devicemap[device.IpAddress].QueryState {
+		logrus.Errorf(ErrCollectingNotStarted.String())
+		return nil, errors.New(ErrCollectingNotStarted.String())
+	}
+
+	found := findRedfishAPIOnTheList(s.devicemap[device.IpAddress].RfAPIList, device.RedfishAPI)
+	if !found {
+		logrus.Errorf(ErrRfAPINotExists.String())
+		return nil, errors.New(ErrRfAPINotExists.String())
+	}
 	ipAddress := device.IpAddress
 	redfishAPI := device.RedfishAPI
 	var authStr string
@@ -712,6 +719,16 @@ func (s *Server) GetDeviceData(c context.Context, device *manager.Device) (*mana
 	deviceRedfishData := new(manager.DeviceData)
 	deviceRedfishData.DeviceData = deviceData
 	return deviceRedfishData, nil
+}
+
+func findRedfishAPIOnTheList(list []string, RedfishAPI string) bool {
+	found := false
+	for _, api := range list {
+		if api == RedfishAPI {
+			found = true
+		}
+	}
+	return found
 }
 
 //GenericDeviceAccess ...

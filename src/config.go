@@ -138,10 +138,7 @@ func (s *Server) getFunctionsResult(function string, deviceIPAddress string, aut
 			}
 		} else {
 			if errRet := s.validateDeviceAccountData(deviceIPAddress, userName, password); errRet != "" {
-				logrus.WithFields(logrus.Fields{
-					"IP address:port": deviceIPAddress,
-					"Username":        userName,
-				}).Errorf(errRet)
+				logrus.Errorf(errRet)
 				return http.StatusBadRequest, errors.New(errRet)
 			}
 		}
@@ -177,10 +174,7 @@ func (s *Server) getFunctionsResult(function string, deviceIPAddress string, aut
 			}
 		} else {
 			if s.getLoginStatus(deviceIPAddress, authStr, userName) == false {
-				logrus.WithFields(logrus.Fields{
-					"IP address:port": deviceIPAddress,
-					"Username":        userName,
-				}).Errorf(ErrUserLogin.String())
+				logrus.Errorf(ErrUserLogin.String())
 				return http.StatusBadRequest, errors.New(ErrUserLogin.String())
 			}
 		}
@@ -204,10 +198,7 @@ func (s *Server) getFunctionsResult(function string, deviceIPAddress string, aut
 			}
 		} else {
 			if s.getUserStatus(deviceIPAddress, authStr, userName) == false {
-				logrus.WithFields(logrus.Fields{
-					"IP address:port": deviceIPAddress,
-					"Username":        userName,
-				}).Errorf(ErrUserStatus.String())
+				logrus.Errorf(ErrUserStatus.String())
 				return http.StatusBadRequest, errors.New(ErrUserStatus.String())
 			}
 		}
@@ -233,12 +224,7 @@ func (s *Server) getFunctionsResult(function string, deviceIPAddress string, aut
 			userPrivilege := s.getUserPrivilege(deviceIPAddress, authStr, userName)
 			defineUserPrivilege := s.getDefineUserPrivilege(deviceIPAddress, authStr)[0]
 			if userPrivilege != defineUserPrivilege {
-				logrus.WithFields(logrus.Fields{
-					"IP address:port":        deviceIPAddress,
-					"Username":               userName,
-					"Privilege":              userPrivilege,
-					"Defined User Privilege": defineUserPrivilege,
-				}).Errorf(ErrUserAdmin.String())
+				logrus.Errorf(ErrUserAdmin.String())
 				return http.StatusBadRequest, errors.New(ErrUserAdmin.String())
 			}
 		}
@@ -267,10 +253,7 @@ func (s *Server) getFunctionsResult(function string, deviceIPAddress string, aut
 			if userPrivilege != privilege[0] {
 				if (userPrivilege == privilege[1] && TargetUserPrivilege == privilege[0]) ||
 					(userPrivilege == privilege[2] && TargetUserPrivilege != privilege[2]) {
-					logrus.WithFields(logrus.Fields{
-						"IP address:port": deviceIPAddress,
-						"Username":        userName,
-					}).Errorf(args[2])
+					logrus.Errorf(ErrUserHigherPrivilege.String())
 					return http.StatusBadRequest, errors.New(args[2])
 				}
 			}
@@ -297,10 +280,7 @@ func (s *Server) getFunctionsResult(function string, deviceIPAddress string, aut
 			userPrivilege := s.getUserPrivilege(deviceIPAddress, authStr, userName)
 			privilege := s.getDefineUserPrivilege(deviceIPAddress, authStr)
 			if userPrivilege == privilege[2] {
-				logrus.WithFields(logrus.Fields{
-					"IP address:port": deviceIPAddress,
-					"Username":        userName,
-				}).Errorf(args[1])
+				logrus.Errorf(ErrWrongPrivilege.String())
 				return http.StatusBadRequest, errors.New(args[1])
 			}
 		}

@@ -34,6 +34,7 @@ const (
 	ErrUserStatus
 	ErrUserAdmin
 	ErrUserPrivilege
+	ErrWrongPrivilege
 	ErrUserHigherPrivilege
 	ErrSessionExists
 	ErrSessionFailed
@@ -112,6 +113,7 @@ const (
 	ErrEventTemperInvalid
 	ErrSetEventTemperFailed
 	ErrUserAuthNotFound
+	ErrCollectingNotStarted
 	ErrMissingDeviceIP
 )
 
@@ -132,6 +134,7 @@ func (e errorIndex) String(args ...string) string {
 		/*ErrUserStatus*/ "Please check this user account in this device",
 		/*ErrUserAdmin*/ "The user privilege is not administrator",
 		/*ErrUserPrivilege*/ "The user privilege could not configure this action to the device",
+		/*ErrWrongPrivilege*/ "Wrong privilege for this action",
 		/*ErrUserHigherPrivilege*/ "The user privilege could not configure this action than other higher user",
 		/*ErrSessionExists*/ "The session service was enabled on the device " + argsStrs[0] + ". Please login device first and assige the token",
 		/*ErrSessionFailed*/ "The session service is not enable to configure on device " + argsStrs[0] + " now, status code " + argsStrs[1],
@@ -210,6 +213,7 @@ func (e errorIndex) String(args ...string) string {
 		/*ErrEventTemperInvalid*/ "The device event temperature is invalid",
 		/*ErrSetEventTemperFailed*/ "Failed to configure device event temperature, status code " + argsStrs[0],
 		/*ErrUserAuthNotFound*/ "The user authentication data does not found",
+		/*ErrCollectingNotStarted*/ "The collecting data has not started yet",
 		/*ErrMissingDeviceIP*/ "Device ip address is missing",
 	}[e-1]
 }
