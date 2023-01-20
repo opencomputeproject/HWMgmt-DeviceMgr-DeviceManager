@@ -214,6 +214,45 @@ func (s *Server) SetFrequency(c context.Context, device *manager.Device) (*empty
 	return &empty.Empty{}, nil
 }
 
+//SimpleUpdate ...
+func (s *Server) SimpleUpdate(c context.Context, request *manager.SimpleUpdateRequest) (*manager.Task, error) {
+	logrus.Info("Received RPC call for SimpleUpdate")
+	ipAddress := request.IpAddress
+	if request == nil || len(ipAddress) == 0 {
+		return nil, status.Errorf(http.StatusBadRequest, ErrMissingDeviceIP.String())
+	}
+	authToken := request.UserOrToken
+
+	funcs := []string{"checkIPAddress", "checkRegistered", "userStatus", "loginStatus", "userPrivilegeOnlyUsers"}
+	functionArgs := [][]string{{""}, {""}, {""}, {""}, {"", ErrUserPrivilege.String()}}
+	for id, f := range funcs {
+		if _, err := s.getFunctionsResult(f, ipAddress, authToken, functionArgs[id]...); err != nil {
+			return nil, err
+		}
+	}
+
+	updateService := &UpdateService{
+		Server: s,
+	}
+	simpleUpdateRequest := SimpleUpdateRequest{
+		ImageURI:         request.ImageURI,
+		TransferProtocol: request.TransferProtocol,
+		Targets:          request.Targets,
+		Username:         request.Username,
+		Password:         request.Password,
+	}
+	taskURI, err := updateService.SimpleUpdate(ipAddress, authToken, simpleUpdateRequest)
+
+	if err != nil {
+		errStatus, _ := status.FromError(err)
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress,
+		}).Error(errStatus.Message())
+		return nil, status.Error(codes.Code(http.StatusInternalServerError), errStatus.Message())
+	}
+	return &manager.Task{TaskURI: taskURI}, nil
+}
+
 //DeleteDeviceList ...
 func (s *Server) DeleteDeviceList(c context.Context, device *manager.Device) (*empty.Empty, error) {
 	logrus.Info("Received DeleteDeviceList")

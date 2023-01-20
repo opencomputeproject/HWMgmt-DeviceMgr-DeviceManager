@@ -131,6 +131,20 @@ message DeviceTemperature {
 	repeated string tempData = 6;
 }
 
+message SimpleUpdateRequest {
+	string IpAddress = 1;
+	string userOrToken = 2;
+	string ImageURI = 3;
+	string TransferProtocol = 4;
+	repeated string Targets = 5;
+	string Username = 6;
+	string Password = 7;
+}
+
+message Task {
+	string TaskURI = 1;
+}
+
 message Empty {}
 
 message DeviceList {
@@ -142,6 +156,7 @@ message DeviceListByIp {
 }
 
 service device_management {
+	rpc SimpleUpdate(SimpleUpdateRequest) returns (Task) {}
 	rpc SendDeviceList(DeviceList) returns (google.protobuf.Empty) {}
 	rpc DeleteDeviceList(Device) returns (google.protobuf.Empty) {}
 	rpc SetFrequency(Device) returns (google.protobuf.Empty) {}
