@@ -913,6 +913,41 @@ func main() {
 			} else {
 				newmessage = newmessage + cmd + " configured"
 			}
+		case "simpleupdate":
+			if len(s) < 2 {
+				newmessage = newmessage + "invalid command length" + cmdstr
+				break
+			}
+
+			info := strings.Split(s[1], ":")
+
+			simpleUpdate := new(manager.SimpleUpdateRequest)
+			simpleUpdate.IpAddress = info[0] + ":" + info[1]
+			simpleUpdate.UserOrToken = info[2]
+			simpleUpdate.ImageURI = info[3] + "://" + info[4]
+			if len(info) > 5 {
+				if info[5] != "" {
+					simpleUpdate.Targets = strings.Split(info[5], ",")
+				}
+				if info[6] != "" {
+					simpleUpdate.TransferProtocol = info[6]
+				}
+				if info[7] != "" {
+					simpleUpdate.Username = info[7]
+				}
+				if info[8] != "" {
+					simpleUpdate.Password = info[8]
+				}
+			}
+
+			task, err := cc.SimpleUpdate(ctx, simpleUpdate)
+			if err != nil {
+				errStatus, _ := status.FromError(err)
+				newmessage = newmessage + errStatus.Message()
+				logrus.Errorf("simple update error - status code %v message %v", errStatus.Code(), errStatus.Message())
+			} else {
+				newmessage = newmessage + "Simple Update send " + task.TaskURI
+			}
 
 		case "listcommands":
 			newmessage = newmessage + `The commands list :
@@ -978,6 +1013,8 @@ sethttpcontenttype - set device HTTP Content Type
 	Usage: ./dm sethttpcontenttype <ip address:port:http content type>
 sethttptype - set device HTTP Type (http or https)
 	Usage: ./dm sethttpcontenttype <ip address:port:http or https>
+simpleupdate - send Simple Update
+	Usage: ./dm simpleupdate <ip address:port:token:file transfer protocol:imageUri:targets:transferProtocol:username:password
 
 `
 		default:
