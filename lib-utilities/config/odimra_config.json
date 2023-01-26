@@ -1,23 +1,23 @@
 {
-	"RootServiceUUID": "",
-	"LocalhostFQDN": "",
-	"SearchAndFilterSchemaPath": "",
-	"RegistryStorePath": "",
+	"RootServiceUUID": "ac2f7880-9d8a-11ed-a8fc-0242ac120002",
+	"LocalhostFQDN": "deviceManager",
+	"SearchAndFilterSchemaPath": "/etc/deviceManager/configs/schema.json",
+	"RegistryStorePath": "/etc/deviceManager/registryStore/",
 	"KeyCertConf": {
-		"RootCACertificatePath": "",
-		"RPCPrivateKeyPath": "",
-		"RPCCertificatePath": "",
-		"RSAPublicKeyPath": "",
-		"RSAPrivateKeyPath": ""
+		"RootCACertificatePath": "/etc/deviceManager/certs/rootCA.crt",
+		"RPCPrivateKeyPath": "/etc/deviceManager/certs/odimra_server.key",
+		"RPCCertificatePath": "/etc/deviceManager/certs/odimra_server.crt",
+		"RSAPublicKeyPath": "/etc/deviceManager/certs/odimra_rsa.public",
+		"RSAPrivateKeyPath": "/etc/deviceManager/certs/odimra_rsa.private"
 	},
 	"APIGatewayConf": {
-		"Host": "",
+		"Host": "127.0.0.1",
 		"Port": "45000",
-		"PrivateKeyPath": "",
-		"CertificatePath": ""
+		"PrivateKeyPath": "/etc/deviceManager/certs/odimra_server.key",
+		"CertificatePath": "/etc/deviceManager/certs/odimra_server.crt"
 	},
 	"MessageBusConf": {
-		"MessageBusConfigFilePath": "",
+		"MessageBusConfigFilePath": "/etc/deviceManager/configs/kafkaConfig.toml",
 	  	"MessageBusType": "Kafka",
 		"MessageBusQueue": ["REDFISH-EVENTS-TOPIC"]
 	},
@@ -112,24 +112,18 @@
 		"Chassis",
 		"TaskService",
 		"EventService",
-		"Fabrics",
 		"Managers",
-		"UpdateService",
-		"TelemetryService"
+		"UpdateService"
 	],
 	"SupportedPluginTypes" : ["Compute", "Fabric", "Storage"],
   "ConnectionMethodConf": [
-      {
-         "ConnectionMethodType": "Redfish",
-         "ConnectionMethodVariant": "Compute:BasicAuth:GRF_v1.0.0"
-      },
 	  {
 		  "ConnectionMethodType": "Redfish",
-		  "ConnectionMethodVariant":"Compute:BasicAuth:URP_v1.0.0"
+		  "ConnectionMethodVariant": "Compute:BasicAuth:DM_v1.0.0"
 	  }
   ],
   "EventConf": {
 		"DeliveryRetryAttempts" : 3,
-		"DeliveryRetryIntervalSeconds" : 60,
+		"DeliveryRetryIntervalSeconds" : 60
   }
 }

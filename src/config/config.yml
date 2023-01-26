@@ -5,9 +5,9 @@ Port: 45003
 RSAPrivateKeyPath: "/etc/plugincert/odimra_rsa.private"
 RSAPublicKeyPath: "/etc/plugincert/odimra_rsa.public"
 
-PKIRootCACertificatePath: "/etc/plugincert/rootCA.crt"
-PKIPrivateKeyPath: "/etc/plugincert/odimra_server.key"
-PKICertificatePath: "/etc/plugincert/odimra_server.crt"
+PKIRootCACertificatePath: "/etc/deviceManager/certs/rootCA.crt"
+PKIPrivateKeyPath: "/etc/deviceManager/certs/odimra_server.key"
+PKICertificatePath: "/etc/deviceManager/certs/odimra_server.crt"
 
 TLSConf:
   ### Supported TLS versions:
