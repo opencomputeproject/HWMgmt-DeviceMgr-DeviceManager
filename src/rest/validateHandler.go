@@ -17,9 +17,10 @@ type validateHandler struct {
 
 func (v *validateHandler) handle(ctx iris.Context) {
 	if ctx.GetHeader("Authorization") == "" {
+		noValidAuthError := "No valid authorization"
 		ctx.StatusCode(http.StatusUnauthorized)
-		logrus.Error("No valid authorization")
-		ctx.WriteString("No valid authorization")
+		logrus.Error(noValidAuthError)
+		ctx.WriteString(noValidAuthError)
 		return
 	}
 
@@ -28,10 +29,10 @@ func (v *validateHandler) handle(ctx iris.Context) {
 	// Retrieve request information from a request.
 	err := ctx.ReadJSON(&reqInfo)
 	if err != nil {
-		errorMessage := "Unable to retrieve mandatory information from a request: " + err.Error()
-		logrus.Error(errorMessage)
+		missingInfoError := "Unable to retrieve mandatory information from a request: " + err.Error()
+		logrus.Error(missingInfoError)
 		ctx.StatusCode(http.StatusBadRequest)
-		ctx.WriteString(errorMessage)
+		ctx.WriteString(missingInfoError)
 		return
 	}
 
@@ -78,6 +79,7 @@ func (v *validateHandler) handle(ctx iris.Context) {
 		ctx.WriteString("Authentication failed. Wrong username and/or password")
 		return
 	}
+
 	if resp.StatusCode >= 300 {
 		logrus.Errorf("GET action for %s ended with %d status code.", systemsUri, resp.StatusCode)
 	}

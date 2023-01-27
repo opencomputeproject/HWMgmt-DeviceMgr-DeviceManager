@@ -143,13 +143,7 @@ func main() {
 		logrus.Fatal("error while loading config: ", err)
 	} else {
 		rest.InitializeAndRunApplication(*conf)
-		//ParseCommandLine()
-		//ProcessGlobalOptions()
-		//ShowGlobalOptions()
-		//s := Server{
-		//	devicemap: make(map[string]*device),
-		//}
-		//go s.startGrpcServer()
+
 		quit := make(chan os.Signal, 10)
 		signal.Notify(quit, os.Interrupt)
 		sig := <-quit

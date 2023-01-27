@@ -58,6 +58,7 @@ func (g *genericResourceHandler) handle(ctx iris.Context) {
 		ctx.WriteString("Authentication failed. Wrong username and/or password")
 		return
 	}
+
 	if response.StatusCode >= 300 {
 		logrus.Errorf("GET action for %s ended with %d status code.", requestedUri, response.StatusCode)
 	}
