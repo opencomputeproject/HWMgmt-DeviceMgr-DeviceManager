@@ -26,10 +26,13 @@ func InitializeAndRunApplication(config config.Config) {
 
 func createRouting(app *iris.Application, config config.Config) {
 	basicAuthHandler := newBasicAuthHandler(config.UserName, config.Password)
+	getGenericResourceHandler := newGenericResourceHandler(config)
+
 	routes := app.Party("/ODIM/v1")
 	{
 		systems := routes.Party("/Systems", basicAuthHandler)
-		systems.Get("")
+		systems.Get("", getGenericResourceHandler)
+		systems.Get("/{id}", getGenericResourceHandler)
 
 		managers := routes.Party("/Managers", basicAuthHandler)
 		managers.Get("", newManagersCollectionHandler(config))
@@ -38,6 +41,7 @@ func createRouting(app *iris.Application, config config.Config) {
 
 	routes.Get("/Status", newStatusHandler(config))
 	routes.Post("/Startup", basicAuthHandler, newStartupHandler())
+	routes.Post("/validate", basicAuthHandler, newValidateHandler(config))
 }
 
 func newHttpServer(c config.Config) (*http.Server, error) {

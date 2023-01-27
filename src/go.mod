@@ -31,4 +31,5 @@ require (
 replace (
 	github.com/ODIM-Project/ODIM/lib-dmtf => ../lib-dmtf
 	github.com/ODIM-Project/ODIM/lib-utilities => ../lib-utilities
+	github.com/ODIM-Project/ODIM/lib-persistence-manager => ../lib-persistence-manager
 )
