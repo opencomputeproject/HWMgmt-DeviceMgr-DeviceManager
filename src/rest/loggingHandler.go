@@ -27,7 +27,7 @@ func (l *loggingHandler) handle(ctx iris.Context) {
 		ctx.Next()
 	}
 
-	requestUri := utils.UriTranslator.DmToRedfish(fmt.Sprintf("https://%s%s", reqInfo.Host, ctx.Request().RequestURI))
+	requestUri := utils.UriConverter.DmToRedfish(fmt.Sprintf("https://%s%s", reqInfo.Host, ctx.Request().RequestURI))
 	logrus.Debugf("request: %s on %s", ctx.Request().Method, requestUri)
 	ctx.Next()
 }
