@@ -3,6 +3,7 @@ package rest
 import (
 	"devicemanager/config"
 	"devicemanager/rest/redfish"
+	"encoding/json"
 	"fmt"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/context"
@@ -33,6 +34,15 @@ func (r *resetComputerSystemHandler) handle(ctx iris.Context) {
 		logrus.Error(missingInfoError)
 		ctx.StatusCode(http.StatusBadRequest)
 		ctx.WriteString(missingInfoError)
+		return
+	}
+
+	err = validateResetSystemAction(reqInfo.Body)
+	if err != nil {
+		badResetTypeError := "bad reset system request: %s" + err.Error()
+		logrus.Error(badResetTypeError)
+		ctx.StatusCode(http.StatusBadRequest)
+		ctx.WriteString(badResetTypeError)
 		return
 	}
 
@@ -68,4 +78,39 @@ func newResetComputerSystemHandler(cfg config.Config) context.Handler {
 	return (&resetComputerSystemHandler{
 		cfg: cfg,
 	}).handle
+}
+
+func validateResetSystemAction(request []byte) error {
+	var resetSystemRequest ResetSystemAction
+	err := json.Unmarshal(request, &resetSystemRequest)
+	if err != nil {
+		return fmt.Errorf("unmarshalling failed for reset system action, err: %s", err.Error())
+	}
+
+	if len(resetSystemRequest.ResetType) == 0 {
+		return fmt.Errorf("missing ResetType value")
+	}
+
+	if !isAllowedResetValue(resetSystemRequest.ResetType) {
+		return fmt.Errorf("%s is not allowed ResetType for ComputerSystem", resetSystemRequest.ResetType)
+	}
+
+	return nil
+}
+
+func isAllowedResetValue(value string) bool {
+	allowedResetValues := []string{"ForceOff", "ForceOn", "ForceRestart", "GracefulRestart", "GracefulShutdown", "Nmi",
+		"On", "Pause", "PowerCycle", "PushPowerButton", "Resume", "Suspend"}
+
+	for _, resetSystemValue := range allowedResetValues {
+		if resetSystemValue == value {
+			return true
+		}
+	}
+
+	return false
+}
+
+type ResetSystemAction struct {
+	ResetType string `json:"ResetType"`
 }
