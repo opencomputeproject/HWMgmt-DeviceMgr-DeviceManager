@@ -40,9 +40,9 @@ func createRouting(app *iris.Application, config config.Config) {
 		systems.Get("/{id}/Memory", getGenericResourceHandler)
 		systems.Get("/{id}/Memory/{id2}", getGenericResourceHandler)
 		systems.Get("/{id}/NetworkInterfaces", getGenericResourceHandler)
+		systems.Get("/{id}/NetworkInterfaces/{id2}", getGenericResourceHandler)
 		systems.Get("/{id}/MemoryDomains", getGenericResourceHandler)
 		systems.Get("/{id}/SecureBoot", getGenericResourceHandler)
-		systems.Get("/{id}/NetworkInterfaces/{id2}", getGenericResourceHandler)
 		systems.Get("/{id}/PCIeDevices/{id2}", getGenericResourceHandler)
 		systems.Get("/{id}/Bios", getGenericResourceHandler)
 		systems.Get("/{id}/Bios/Settings", getGenericResourceHandler)
@@ -54,7 +54,7 @@ func createRouting(app *iris.Application, config config.Config) {
 		ethernetInterfaces.Get("/{id}/VLANS", getGenericResourceHandler)
 		ethernetInterfaces.Get("/{id}/VLANS/{id2}", getGenericResourceHandler)
 
-		logService := systems.Party("{id}/LogServices")
+		logService := systems.Party("/{id}/LogServices")
 		logService.Get("", getGenericResourceHandler)
 		logService.Get("/{id}", getGenericResourceHandler)
 		logService.Get("/{id}/Entries", getGenericResourceHandler)
@@ -73,7 +73,7 @@ func createRouting(app *iris.Application, config config.Config) {
 		storagePools.Get("/{id}/AllocatedVolumes", getGenericResourceHandler)
 		storagePools.Get("/{id}/AllocatedVolumes/{id2}", getGenericResourceHandler)
 
-		capacitySources := storagePools.Party("{id}/CapacitySources")
+		capacitySources := storagePools.Party("/{id}/CapacitySources")
 		capacitySources.Get("/{id}/ProvidingVolumes", getGenericResourceHandler)
 		capacitySources.Get("/{id}/ProvidingVolumes/{id2}", getGenericResourceHandler)
 		capacitySources.Get("/{id}/ProvidingDrives", getGenericResourceHandler)

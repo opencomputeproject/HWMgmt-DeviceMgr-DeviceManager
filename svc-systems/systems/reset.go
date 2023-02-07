@@ -127,9 +127,11 @@ func (p *PluginContact) ComputerSystemReset(req *systemsproto.ComputerSystemRese
 	}
 	resp.StatusCode = http.StatusOK
 	resp.StatusMessage = response.Success
-	err = json.Unmarshal(body, &resp.Body)
-	if err != nil {
-		return common.GeneralError(http.StatusInternalServerError, response.InternalError, err.Error(), nil, nil)
+	if len(body) > 0 {
+		err = json.Unmarshal(body, &resp.Body)
+		if err != nil {
+			return common.GeneralError(http.StatusInternalServerError, response.InternalError, err.Error(), nil, nil)
+		}
 	}
 	smodel.AddSystemResetInfo("/redfish/v1/Systems/"+req.SystemID, resetCompSys.ResetType)
 	return resp
