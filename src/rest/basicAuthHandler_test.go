@@ -9,7 +9,7 @@ import (
 
 func Test_invalid_username(t *testing.T) {
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/ODIM/v1/Status", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.SetBasicAuth("dummyUserName", configForTesting.Password)
 	basicAuthHandler := newBasicAuthHandler(configForTesting.UserName, configForTesting.Password)
 
@@ -19,7 +19,7 @@ func Test_invalid_username(t *testing.T) {
 
 func Test_invalid_password(t *testing.T) {
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/ODIM/v1/Status", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.SetBasicAuth(configForTesting.UserName, "dummyPassword")
 	basicAuthHandler := newBasicAuthHandler(configForTesting.UserName, configForTesting.Password)
 
