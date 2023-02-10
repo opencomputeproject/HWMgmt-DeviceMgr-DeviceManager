@@ -1,17 +1,11 @@
 package rest
 
 import (
-	"devicemanager/config"
 	"github.com/kataras/iris/v12/httptest"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 )
-
-var configForTesting = config.Config{
-	UserName: "admin",
-	Password: "WjivsaGNQI5s02f525Hiq5vOg0za09okGDzBdJVsIM413TnCvTaq6QcRGuPWraNT92l6XxqPxWeq6eTKQanRnQ==",
-}
 
 func Test_invalid_username(t *testing.T) {
 	rec := httptest.NewRecorder()
