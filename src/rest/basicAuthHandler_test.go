@@ -10,7 +10,7 @@ import (
 func Test_invalid_username(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.SetBasicAuth("dummyUserName", configForTesting.Password)
+	req.SetBasicAuth("dummyAdmin", "D3v1ceMgr")
 	basicAuthHandler := newBasicAuthHandler(configForTesting.UserName, configForTesting.Password)
 
 	httptest.Do(rec, req, basicAuthHandler)
@@ -20,7 +20,7 @@ func Test_invalid_username(t *testing.T) {
 func Test_invalid_password(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.SetBasicAuth(configForTesting.UserName, "dummyPassword")
+	req.SetBasicAuth("admin", "dummyPassword")
 	basicAuthHandler := newBasicAuthHandler(configForTesting.UserName, configForTesting.Password)
 
 	httptest.Do(rec, req, basicAuthHandler)
@@ -30,7 +30,7 @@ func Test_invalid_password(t *testing.T) {
 func Test_valid_credentials(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.SetBasicAuth(configForTesting.UserName, configForTesting.UserName)
+	req.SetBasicAuth("admin", "D3v1ceMgr")
 	basicAuthHandler := newBasicAuthHandler(configForTesting.UserName, configForTesting.Password)
 
 	httptest.Do(rec, req, basicAuthHandler)
