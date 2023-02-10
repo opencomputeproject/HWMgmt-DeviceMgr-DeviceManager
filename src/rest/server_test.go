@@ -6,5 +6,5 @@ import (
 
 var configForTesting = config.Config{
 	UserName: "admin",
-	Password: "WjivsaGNQI5s02f525Hiq5vOg0za09okGDzBdJVsIM413TnCvTaq6QcRGuPWraNT92l6XxqPxWeq6eTKQanRnQ==",
+	Password: "YmzjkpHW8NIKoLJ6Lp5bufhl6bosH8U7Gy7rLeo8t8ixFk5soWalYa4FX8m8cjnfI6AKtoxTo7DfGdphNk3Y8g==",
 }
