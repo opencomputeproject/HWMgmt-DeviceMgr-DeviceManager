@@ -19,7 +19,7 @@ func Test_invalid_credentials(t *testing.T) {
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.SetBasicAuth(test.username, test.password)
-		basicAuthHandler := newBasicAuthHandler(configForTesting.UserName, configForTesting.Password)
+		basicAuthHandler := newBasicAuthHandler(testConfig.UserName, testConfig.Password)
 
 		httptest.Do(rec, req, basicAuthHandler)
 		assert.Equal(t, http.StatusUnauthorized, rec.Result().StatusCode)
@@ -30,7 +30,7 @@ func Test_valid_credentials(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.SetBasicAuth("admin", "D3v1ceMgr")
-	basicAuthHandler := newBasicAuthHandler(configForTesting.UserName, configForTesting.Password)
+	basicAuthHandler := newBasicAuthHandler(testConfig.UserName, testConfig.Password)
 
 	httptest.Do(rec, req, basicAuthHandler)
 	assert.Equal(t, http.StatusOK, rec.Result().StatusCode)
