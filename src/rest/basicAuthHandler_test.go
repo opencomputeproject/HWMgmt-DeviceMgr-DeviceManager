@@ -7,24 +7,23 @@ import (
 	"testing"
 )
 
-func Test_invalid_username(t *testing.T) {
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.SetBasicAuth("dummyAdmin", "D3v1ceMgr")
-	basicAuthHandler := newBasicAuthHandler(configForTesting.UserName, configForTesting.Password)
+func Test_invalid_credentials(t *testing.T) {
+	tests := []struct {
+		username string
+		password string
+	}{
+		{"dummyAdmin", "D3v1ceMgr"},
+		{"admin", "dummyPassword"},
+	}
+	for _, test := range tests {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.SetBasicAuth(test.username, test.password)
+		basicAuthHandler := newBasicAuthHandler(configForTesting.UserName, configForTesting.Password)
 
-	httptest.Do(rec, req, basicAuthHandler)
-	assert.Equal(t, http.StatusUnauthorized, rec.Result().StatusCode)
-}
-
-func Test_invalid_password(t *testing.T) {
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.SetBasicAuth("admin", "dummyPassword")
-	basicAuthHandler := newBasicAuthHandler(configForTesting.UserName, configForTesting.Password)
-
-	httptest.Do(rec, req, basicAuthHandler)
-	assert.Equal(t, http.StatusUnauthorized, rec.Result().StatusCode)
+		httptest.Do(rec, req, basicAuthHandler)
+		assert.Equal(t, http.StatusUnauthorized, rec.Result().StatusCode)
+	}
 }
 
 func Test_valid_credentials(t *testing.T) {
