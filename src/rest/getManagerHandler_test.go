@@ -6,18 +6,18 @@ import (
 	"testing"
 )
 
-func TestGetManager(t *testing.T) {
+func Test_get_manager(t *testing.T) {
 	app := testApp()
-	request := httptest.New(t, app).Request(http.MethodGet, "/ODIM/v1/Managers/"+configForTesting.RootServiceUUID)
+	request := httptest.New(t, app).Request(http.MethodGet, "/ODIM/v1/Managers/"+testConfig.RootServiceUUID)
 	request.
 		WithBasicAuth("admin", "D3v1ceMgr").
 		Expect().
 		Status(http.StatusOK).
 		JSON().Object().
 		ContainsKey("Name").
-		ValueEqual("FirmwareVersion", configForTesting.FirmwareVersion).
-		ValueEqual("UUID", configForTesting.RootServiceUUID).
-		ValueEqual("Id", configForTesting.RootServiceUUID).
+		ValueEqual("FirmwareVersion", testConfig.FirmwareVersion).
+		ValueEqual("UUID", testConfig.RootServiceUUID).
+		ValueEqual("Id", testConfig.RootServiceUUID).
 		ContainsKey("ManagerType").
 		ContainsKey("Certificates").
 		Value("Status").Object().

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestGetManagersCollection(t *testing.T) {
+func Test_get_managers_collection(t *testing.T) {
 	app := testApp()
 	request := httptest.New(t, app).Request(http.MethodGet, "/ODIM/v1/Managers")
 	request.
