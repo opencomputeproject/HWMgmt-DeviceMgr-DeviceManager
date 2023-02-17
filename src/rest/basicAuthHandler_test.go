@@ -14,6 +14,7 @@ func Test_invalid_credentials(t *testing.T) {
 	}{
 		{"dummyAdmin", "D3v1ceMgr"},
 		{"admin", "dummyPassword"},
+		{"", ""},
 	}
 	for _, test := range tests {
 		rec := httptest.NewRecorder()
@@ -34,4 +35,13 @@ func Test_valid_credentials(t *testing.T) {
 
 	httptest.Do(rec, req, basicAuthHandler)
 	assert.Equal(t, http.StatusOK, rec.Result().StatusCode)
+}
+
+func Test_missing_basic_auth_header(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	basicAuthHandler := newBasicAuthHandler(testConfig.UserName, testConfig.Password)
+
+	httptest.Do(rec, req, basicAuthHandler)
+	assert.Equal(t, http.StatusUnauthorized, rec.Result().StatusCode)
 }
