@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestGetStatus(t *testing.T) {
+func Test_get_status(t *testing.T) {
 	app := testApp()
 	request := httptest.New(t, app).Request(http.MethodGet, "/ODIM/v1/Status")
 	request.
