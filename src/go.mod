@@ -11,6 +11,7 @@ require (
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/kataras/iris/v12 v12.2.0-alpha9
 	github.com/sirupsen/logrus v1.8.1
+	github.com/stretchr/testify v1.7.0
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	google.golang.org/grpc v1.38.0
