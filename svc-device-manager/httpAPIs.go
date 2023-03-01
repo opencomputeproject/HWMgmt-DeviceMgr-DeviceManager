@@ -53,11 +53,11 @@ var RfProtocol = make(map[string]string)
 func addAuthHeader(request *http.Request, userAuthData userAuth) {
 	if (userAuthData != userAuth{}) {
 		if userAuthData.PassAuth == false {
-		if userAuthData.AuthType == authTypeEnum.BASIC {
-			request.SetBasicAuth(userAuthData.UserName, userAuthData.Password)
-		} else {
-			if userAuthData.Token != "" {
-				request.Header.Add("X-Auth-Token", userAuthData.Token)
+			if userAuthData.AuthType == authTypeEnum.BASIC {
+				request.SetBasicAuth(userAuthData.UserName, userAuthData.Password)
+			} else {
+				if userAuthData.Token != "" {
+					request.Header.Add("X-Auth-Token", userAuthData.Token)
 				}
 			}
 		}
