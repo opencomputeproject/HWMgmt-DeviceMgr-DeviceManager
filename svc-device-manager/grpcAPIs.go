@@ -207,6 +207,45 @@ func (s *Server) SetFrequency(c context.Context, device *manager.Device) (*empty
 	return &empty.Empty{}, nil
 }
 
+//SimpleUpdate ...
+func (s *Server) SimpleUpdate(c context.Context, request *manager.SimpleUpdateRequest) (*manager.Task, error) {
+	logrus.Info("Received RPC call for SimpleUpdate")
+	ipAddress := request.IpAddress
+	if request == nil || len(ipAddress) == 0 {
+		return nil, status.Errorf(http.StatusBadRequest, ErrMissingDeviceIP.String())
+	}
+	authToken := request.UserOrToken
+
+	funcs := []string{"checkIPAddress", "checkRegistered", "userStatus", "loginStatus", "userPrivilegeOnlyUsers"}
+	functionArgs := [][]string{{""}, {""}, {""}, {""}, {"", ErrUserPrivilege.String()}}
+	for id, f := range funcs {
+		if _, err := s.getFunctionsResult(f, ipAddress, authToken, functionArgs[id]...); err != nil {
+			return nil, err
+		}
+	}
+
+	updateService := &UpdateService{
+		Server: s,
+	}
+	simpleUpdateRequest := SimpleUpdateRequest{
+		ImageURI:         request.ImageURI,
+		TransferProtocol: request.TransferProtocol,
+		Targets:          request.Targets,
+		Username:         request.Username,
+		Password:         request.Password,
+	}
+	taskURI, err := updateService.SimpleUpdate(ipAddress, authToken, simpleUpdateRequest)
+
+	if err != nil {
+		errStatus, _ := status.FromError(err)
+		logrus.WithFields(logrus.Fields{
+			"IP address:port": ipAddress,
+		}).Error(errStatus.Message())
+		return nil, status.Error(codes.Code(http.StatusInternalServerError), errStatus.Message())
+	}
+	return &manager.Task{TaskURI: taskURI}, nil
+}
+
 //DeleteDeviceList ...
 func (s *Server) DeleteDeviceList(c context.Context, device *manager.Device) (*empty.Empty, error) {
 	logrus.Info("Received DeleteDeviceList")
@@ -396,7 +435,6 @@ func (s *Server) CreateDeviceAccount(c context.Context, account *manager.DeviceA
 		errStatus, _ := status.FromError(err)
 		logrus.WithFields(logrus.Fields{
 			"Username": newUsername,
-			"Password": newPassword,
 		}).Error(errStatus.Message())
 		return &empty.Empty{}, status.Errorf(codes.Code(statusCode), errStatus.Message())
 	}
@@ -472,7 +510,6 @@ func (s *Server) LoginDevice(c context.Context, account *manager.DeviceAccount) 
 		logrus.WithFields(logrus.Fields{
 			"IP address:port": ipAddress,
 			"Username":        loginUserName,
-			"Password":        loginPassword,
 		}).Error(errStatus.Message())
 		return nil, status.Errorf(codes.Code(statusCode), errStatus.Message())
 	}
@@ -548,7 +585,6 @@ func (s *Server) ChangeDeviceUserPassword(c context.Context, account *manager.De
 		errStatus, _ := status.FromError(err)
 		logrus.WithFields(logrus.Fields{
 			"Username": userName,
-			"Password": password,
 		}).Error(errStatus.Message())
 		return &empty.Empty{}, status.Errorf(codes.Code(statusCode), errStatus.Message())
 	}
@@ -623,6 +659,16 @@ func (s *Server) GetDeviceData(c context.Context, device *manager.Device) (*mana
 	if device == nil || len(device.IpAddress) == 0 {
 		return nil, status.Errorf(http.StatusBadRequest, ErrDeviceData.String())
 	}
+	if !s.devicemap[device.IpAddress].QueryState {
+		logrus.Errorf(ErrCollectingNotStarted.String())
+		return nil, errors.New(ErrCollectingNotStarted.String())
+	}
+
+	found := findRedfishAPIOnTheList(s.devicemap[device.IpAddress].RfAPIList, device.RedfishAPI)
+	if !found {
+		logrus.Errorf(ErrRfAPINotExists.String())
+		return nil, errors.New(ErrRfAPINotExists.String())
+	}
 	ipAddress := device.IpAddress
 	redfishAPI := device.RedfishAPI
 	var authStr string
@@ -645,6 +691,16 @@ func (s *Server) GetDeviceData(c context.Context, device *manager.Device) (*mana
 	deviceRedfishData := new(manager.DeviceData)
 	deviceRedfishData.DeviceData = deviceData
 	return deviceRedfishData, nil
+}
+
+func findRedfishAPIOnTheList(list []string, RedfishAPI string) bool {
+	found := false
+	for _, api := range list {
+		if api == RedfishAPI {
+			found = true
+		}
+	}
+	return found
 }
 
 //GenericDeviceAccess ...
