@@ -13,4 +13,6 @@ for svc in ${svcs[@]}; do
   fi
 done
 
+svc-device-manager >> /var/log/deviceManager/svc-device-manager.log 2>&1 &
+
 wait
