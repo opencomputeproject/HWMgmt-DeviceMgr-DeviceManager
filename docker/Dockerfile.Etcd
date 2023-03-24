@@ -2,7 +2,7 @@ FROM bitnami/etcd:3.4.15
 
 COPY build/etcd/etcd.yml /opt/bitnami/etcd/conf/
 RUN mkdir -p /opt/deviceManager/certs
-COPY build/certs/test/* /opt/deviceManager/certs/
+COPY build/certs/* /opt/deviceManager/certs/
 
 ENV ETCD_ROOT_PASSWORD=d3v1mgr
 
