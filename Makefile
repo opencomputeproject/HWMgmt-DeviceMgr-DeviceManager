@@ -111,7 +111,7 @@ protos:
 buildDeviceManager:
 	@echo "Building Device Manager binary..."
 	@cd svc-device-manager; \
-	${GO_BIN_PATH}/go build -mod=vendor -o ../apps/main .
+	${GO_BIN_PATH}/go build -o ../apps/svc-device-manager .
 
 buildServices:
 	build/buildProtoFiles.sh
