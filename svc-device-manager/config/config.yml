@@ -1,5 +1,5 @@
 ### Device Manager configuration file
-Host: odimra.local
+Host: localhost
 Port: 45003
 
 PKIRootCACertificatePath: "/etc/deviceManager/certs/rootCA.crt"
