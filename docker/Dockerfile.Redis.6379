@@ -1,0 +1,8 @@
+FROM redis:7.0.8
+
+RUN mkdir -p /etc/deviceManager/redis
+COPY build/redis/redis.conf /etc/deviceManager/redis
+
+EXPOSE 6379
+
+CMD [ "redis-server", "/etc/deviceManager/redis/redis.conf", "--port 6379" ]
