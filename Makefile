@@ -39,22 +39,25 @@ help:
 	@echo
 	@echo "- Quick installation commands."
 	@echo "all                  : Install necessary packages, commands and run Device Manager"
-	@echo "buildDeviceManager   : Build and run Device Manager"
 	@echo
 	@echo "- Additional commands."
+	@echo "buildDeviceManager   : Builds Device Manager"
 	@echo "protos               : Build for manager.pb.go file"
 	@echo "lintStyle            : Verify code is properly gofmt-ed"
 	@echo "lintSanity           : Verify that 'go vet' doesn't report any issues"
 	@echo "lintMod              : Verify the integrity of the 'mod' files"
 	@echo "lint                 : Shorthand for lintStyle & lintSanity"
-	@echo "installRedis         : Download and install Redis"
-	@echo "configureRedis       : Setup Redis"
-	@echo "installEtcd          : Setup etcd"
+	@echo "dockerCleanup"		: Kills and removes redis, etcd, device manager containers along with network.
 	@echo
 
 .PHONY: install
 
 all: init protos buildDeviceManager buildServices buildDockerImages runDockerImages
+
+dockerCleanup:
+	docker kill redis6379 redis6380 device-manager etcd
+	docker rm redis6379 redis6380 device-manager etcd
+	docker network rm dm-net
 
 runDockerImages:
 	docker network create dm-net
