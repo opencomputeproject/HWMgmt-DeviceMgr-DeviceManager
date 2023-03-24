@@ -23,9 +23,9 @@
 	},
 	"DBConf": {
 		"Protocol": "tcp",
-		"InMemoryHost": "localhost",
+		"InMemoryHost": "redis6379",
 		"InMemoryPort": "6379",
-		"OnDiskHost": "localhost",
+		"OnDiskHost": "redis6380",
 		"OnDiskPort": "6380",
 		"MaxIdleConns": 10,
 		"MaxActiveConns": 120,
