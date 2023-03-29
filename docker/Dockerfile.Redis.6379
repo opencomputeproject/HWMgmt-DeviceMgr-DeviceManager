@@ -1,7 +1,15 @@
 FROM redis:7.0.8
 
-RUN mkdir -p /etc/deviceManager/redis
+RUN mkdir -p /etc/deviceManager/redis /deviceManager/data
 COPY build/redis/redis.conf /etc/deviceManager/redis
+
+RUN groupadd -r -g 1233 deviceManager &&  \
+    useradd --no-log-init -u 1233 -r -g deviceManager deviceManager && \
+    chown -R deviceManager:deviceManager /etc/deviceManager/redis /deviceManager/data
+USER deviceManager
+
+VOLUME /deviceManager/data
+WORKDIR /deviceManager/data
 
 EXPOSE 6379
 
