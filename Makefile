@@ -55,8 +55,7 @@ help:
 all: init protos buildDeviceManager buildServices buildDockerImages runDockerImages
 
 dockerCleanup:
-	docker kill redis6379 redis6380 device-manager etcd
-	docker rm redis6379 redis6380 device-manager etcd
+	docker rm -f redis6379 redis6380 device-manager etcd
 	docker network rm dm-net
 
 runDockerImages:
