@@ -1,15 +1,15 @@
 FROM bitnami/etcd:3.4.15
 
+USER 0
 COPY build/etcd/etcd.yml /opt/bitnami/etcd/conf/
-RUN mkdir -p /opt/deviceManager/certs
-COPY build/certs/* /opt/deviceManager/certs/
+RUN mkdir -p /etc/deviceManager/certs
+COPY build/certs/* /etc/deviceManager/certs/
 
 ENV ETCD_ROOT_PASSWORD=d3v1mgr
 
-USER 0
 RUN groupadd -r -g 1233 deviceManager &&  \
     useradd --no-log-init -u 1233 -r -g deviceManager deviceManager && \
-    chown -R deviceManager:deviceManager /opt/deviceManager/certs/ /opt/bitnami
+    chown -R deviceManager:deviceManager /etc/deviceManager/certs/ /opt/bitnami
 USER deviceManager
 
 ENTRYPOINT [ "/opt/bitnami/scripts/etcd/entrypoint.sh" ]

@@ -92,32 +92,32 @@ proxy-read-timeout: 0
 
 client-transport-security:
   # Path to the client server TLS cert file.
-  cert-file: /opt/deviceManager/certs/odimra_etcd_server.crt
+  cert-file: /etc/deviceManager/certs/odimra_etcd_server.crt
 
   # Path to the client server TLS key file.
-  key-file: /opt/deviceManager/certs/odimra_etcd_server.key
+  key-file: /etc/deviceManager/certs/odimra_etcd_server.key
 
   # Enable client cert authentication.
   client-cert-auth: true
 
   # Path to the client server TLS trusted CA cert file.
-  trusted-ca-file: /opt/deviceManager/certs/rootCA.crt
+  trusted-ca-file: /etc/deviceManager/certs/rootCA.crt
 
   # Client TLS using generated certificates
   auto-tls: false
 
 peer-transport-security:
   # Path to the peer server TLS cert file.
-  cert-file: /opt/deviceManager/certs/odimra_etcd_server.crt
+  cert-file: /etc/deviceManager/certs/odimra_etcd_server.crt
 
   # Path to the peer server TLS key file.
-  key-file: /opt/deviceManager/certs/odimra_etcd_server.key
+  key-file: /etc/deviceManager/certs/odimra_etcd_server.key
 
   # Enable peer client cert authentication.
   client-cert-auth: true
 
   # Path to the peer server TLS trusted CA cert file.
-  trusted-ca-file: /opt/deviceManager/certs/rootCA.crt
+  trusted-ca-file: /etc/deviceManager/certs/rootCA.crt
 
   # Peer TLS using generated certificates.
   auto-tls: false
