@@ -47,7 +47,7 @@ help:
 	@echo "lintSanity           : Verify that 'go vet' doesn't report any issues"
 	@echo "lintMod              : Verify the integrity of the 'mod' files"
 	@echo "lint                 : Shorthand for lintStyle & lintSanity"
-	@echo "dockerCleanup		: Kills and removes redis, etcd, device manager containers along with network."
+	@echo "dockerCleanup        : Kills and removes redis, etcd, device manager containers along with network."
 	@echo
 
 .PHONY: install
