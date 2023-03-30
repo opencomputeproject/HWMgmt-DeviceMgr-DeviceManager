@@ -52,7 +52,10 @@ help:
 
 .PHONY: install
 
-all: init protos buildDeviceManager buildServices buildDockerImages runDockerImages
+all: init protos buildDeviceManager buildServices buildDockerImages runDockerImages createRedisSchema
+
+createRedisSchema:
+	docker exec -t redis6380 /bin/bash -c "/etc/deviceManager/redis/createSchema.sh"
 
 dockerCleanup:
 	docker rm -f redis6379 redis6380 device-manager etcd
