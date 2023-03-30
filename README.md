@@ -53,7 +53,7 @@ Before building Device Manager, the following steps are required:
     - (project root)/build/etcd/etcd.yml
 
 ## Install Device Manager using single command
-Use this command to install and run Device Manager together with ODIM services as Docker containers.
+Use this command to install and run Device Manager together with ODIM services, Redis and Etcd as Docker containers.
 
 ```shell
 $ make all
