@@ -12,5 +12,7 @@ RUN groupadd -r -g 1233 deviceManager &&  \
     chown -R deviceManager:deviceManager /etc/deviceManager/certs/ /opt/bitnami
 USER deviceManager
 
+EXPOSE 2379 2380
+
 ENTRYPOINT [ "/opt/bitnami/scripts/etcd/entrypoint.sh" ]
 CMD [ "etcd", "--config-file=/opt/bitnami/etcd/conf/etcd.yml" ]
