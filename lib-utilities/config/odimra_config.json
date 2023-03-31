@@ -11,7 +11,7 @@
 		"RSAPrivateKeyPath": "/etc/deviceManager/certs/odimra_rsa.private"
 	},
 	"APIGatewayConf": {
-		"Host": "127.0.0.1",
+		"Host": "device-manager",
 		"Port": "45000",
 		"PrivateKeyPath": "/etc/deviceManager/certs/odimra_server.key",
 		"CertificatePath": "/etc/deviceManager/certs/odimra_server.crt"
