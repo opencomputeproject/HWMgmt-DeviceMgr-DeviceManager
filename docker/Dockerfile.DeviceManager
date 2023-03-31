@@ -5,8 +5,8 @@ RUN touch /var/log/deviceManager/svc-account-session.log /var/log/deviceManager/
     /var/log/deviceManager/svc-api.log /var/log/deviceManager/svc-events.log /var/log/deviceManager/svc-systems.log \
     /var/log/deviceManager/svc-task.log /var/log/deviceManager/svc-device-manager.log
 COPY apps/* /usr/local/bin/
-COPY build/runODIMServices.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/runODIMServices.sh /usr/local/bin/svc*
+COPY build/runServices.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/runServices.sh /usr/local/bin/svc*
 RUN chmod +w /var/log/deviceManager/svc*
 COPY lib-utilities/config/*.json /etc/deviceManager/configs/
 COPY lib-utilities/etc/* /etc/deviceManager/registryStore/
@@ -24,4 +24,4 @@ USER deviceManager
 
 EXPOSE 45000
 
-ENTRYPOINT ["/usr/local/bin/runODIMServices.sh"]
+ENTRYPOINT ["/usr/local/bin/runServices.sh"]
