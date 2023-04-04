@@ -1,0 +1,27 @@
+FROM ubuntu:20.04
+
+RUN mkdir -p /etc/deviceManager/configs /etc/deviceManager/certs /etc/deviceManager/registryStore /var/log/deviceManager
+RUN touch /var/log/deviceManager/svc-account-session.log /var/log/deviceManager/svc-aggregation.log \
+    /var/log/deviceManager/svc-api.log /var/log/deviceManager/svc-events.log /var/log/deviceManager/svc-systems.log \
+    /var/log/deviceManager/svc-task.log /var/log/deviceManager/svc-device-manager.log
+COPY apps/* /usr/local/bin/
+COPY build/runServices.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/runServices.sh /usr/local/bin/svc*
+RUN chmod +w /var/log/deviceManager/svc*
+COPY lib-utilities/config/*.json /etc/deviceManager/configs/
+COPY lib-utilities/etc/* /etc/deviceManager/registryStore/
+COPY lib-messagebus/platforms/platformconfig.toml /etc/deviceManager/configs/kafkaConfig.toml
+COPY svc-device-manager/config/config.yml /etc/deviceManager/configs/
+COPY build/certs/* /etc/deviceManager/certs/
+
+ENV CONFIG_FILE_PATH=/etc/deviceManager/configs/odimra_config.json
+ENV DM_CONFIG_FILE_PATH=/etc/deviceManager/configs/config.yml
+
+RUN groupadd -r -g 1233 deviceManager &&  \
+    useradd --no-log-init -u 1233 -r -g deviceManager deviceManager && \
+    chown -R deviceManager:deviceManager /etc/deviceManager/configs /etc/deviceManager/certs /etc/deviceManager/registryStore /var/log/deviceManager
+USER deviceManager
+
+EXPOSE 45000
+
+ENTRYPOINT ["/usr/local/bin/runServices.sh"]

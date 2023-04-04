@@ -39,29 +39,45 @@ help:
 	@echo
 	@echo "- Quick installation commands."
 	@echo "all                  : Install necessary packages, commands and run Device Manager"
-	@echo "buildDeviceMgr       : Build and run Device Manager"
-	@echo "buildAndRunODIM      : Build run ODIM's proto files and services"
 	@echo
 	@echo "- Additional commands."
+	@echo "buildDeviceManager   : Builds Device Manager"
 	@echo "protos               : Build for manager.pb.go file"
 	@echo "lintStyle            : Verify code is properly gofmt-ed"
 	@echo "lintSanity           : Verify that 'go vet' doesn't report any issues"
 	@echo "lintMod              : Verify the integrity of the 'mod' files"
 	@echo "lint                 : Shorthand for lintStyle & lintSanity"
-	@echo "installRedis         : Download and install Redis"
-	@echo "configureRedis       : Setup Redis"
-	@echo "installEtcd          : Setup etcd"
+	@echo "dockerCleanup        : Kills and removes redis, etcd, device manager containers along with network."
 	@echo
 
 .PHONY: install
 
-all: init protos buildDeviceMgr buildAndRunODIM
+all: init protos buildDeviceManager buildServices buildDockerImages runDockerImages createRedisSchema
+
+createRedisSchema:
+	docker exec -t redis6380 /bin/bash -c "/etc/deviceManager/redis/createSchema.sh"
+
+dockerCleanup:
+	docker rm -f redis6379 redis6380 device-manager etcd
+	docker network rm dm-net
+
+runDockerImages:
+	docker network create dm-net
+	docker run -dp 6379:6379 --name redis6379 --net dm-net redis6379
+	docker run -dp 6380:6380 --name redis6380 --net dm-net redis6380
+	docker run -h etcd -dp 2379:2379 -p 2380:2380 --name etcd --net dm-net etcd
+	docker run -dp 45000:45000 --name device-manager --net dm-net device-manager
+
+buildDockerImages:
+	sudo docker build --no-cache -t device-manager -f docker/Dockerfile.DeviceManager .
+	sudo docker build --no-cache -t redis6379 -f docker/Dockerfile.Redis.6379 .
+	sudo docker build --no-cache -t redis6380 -f docker/Dockerfile.Redis.6380 .
+	sudo docker build --no-cache -t etcd -f docker/Dockerfile.Etcd .
 
 init:
 	sudo apt -y update
 	sudo apt -y upgrade
 	sudo apt -y install git curl unzip
-	sudo apt-get install libatomic1
 
 go-install:
 	wget https://go.dev/dl/go1.17.10.linux-amd64.tar.gz
@@ -89,47 +105,22 @@ prereq:
 	rm -rf /tmp/protoc3
 	GOROOT=${GO_DIR} GOPATH=$(HOME)/app ${GO_BIN_PATH}/go get -v google.golang.org/grpc
 	GOROOT=${GO_DIR} GOPATH=$(HOME)/app ${GO_BIN_PATH}/go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-	GOROOT=${GO_DIR} GOPATH=$(HOME)/app ${GO_BIN_PATH}/go install github.com/golang/protobuf/protoc-gen-go@v1.5.2
+	GOROOT=${GO_DIR} GOPATH=$(HOME)/app ${GO_BIN_PATH}/go install github.com/golang/protobuf/protoc-gen-go@v1.3.2
 
 protos:
-	@cd src; \
+	@cd svc-device-manager; \
 	GOROOT=${GO_DIR} GOPATH=$(HOME)/app PATH=$(PATH):$(HOME)/app/bin protoc --proto_path=proto \
 	--go_out=plugins=grpc:. \
 	proto/manager.proto
 
-buildDeviceMgr:
-	@echo "Building Device Manager Binary ..."
-	@echo "export DM_CONFIG_FILE_PATH=$(DM_CONFIG_FILE_PATH)" >> $(HOME)/.bashrc
-	@cd src; \
-	${GO_BIN_PATH}/go build -mod=vendor -o ../apps/main .
-	export DM_CONFIG_FILE_PATH=$(DM_CONFIG_FILE_PATH)
-	./apps/main &>/dev/null &
-	@echo "Device Manager is running."
+buildDeviceManager:
+	@echo "Building Device Manager binary..."
+	@cd svc-device-manager; \
+	${GO_BIN_PATH}/go build -o ../apps/svc-device-manager .
 
-installRedis:
-	sudo apt-get install -y pkg-config
-	sudo mkdir -p /opt/deviceManager/redis
-	wget -qO- https://download.redis.io/releases/redis-6.2.5.tar.gz | sudo tar xzv -C /opt/deviceManager/redis --strip-components=1
-	@cd /opt/deviceManager/redis;\
-	sudo make
-
-configureRedis:
-	wget -P src/config "https://raw.githubusercontent.com/redis/redis/6.2.5/redis.conf"
-	/opt/deviceManager/redis/src/redis-server src/config/redis.conf --protected-mode no &
-	/opt/deviceManager/redis/src/redis-server src/config/redis.conf --protected-mode no --port 6380 &
-	build/createSchema.sh
-
-installEtcd:
-	sudo mkdir -p /opt/deviceManager/etcd
-	wget -qO- https://github.com/etcd-io/etcd/releases/download/v3.4.15/etcd-v3.4.15-linux-amd64.tar.gz | sudo tar xzv -C /opt/deviceManager/etcd --strip-components=1
-	/opt/deviceManager/etcd/etcd --config-file /home/intel/IdeaProjects/HWMgmt-DeviceMgr-DeviceManager/src/config/etcd.conf &
-
-buildAndRunODIM: installRedis configureRedis installEtcd
-	build/buildProtoForODIMServices.sh
-	build/buildODIMServices.sh
-	@echo "export CONFIG_FILE_PATH=$(CONFIG_FILE_PATH)" >> $(HOME)/.bashrc
-	export CONFIG_FILE_PATH=$(CONFIG_FILE_PATH)
-	build/runODIMServices.sh
+buildServices:
+	build/buildProtoFiles.sh
+	build/buildServices.sh
 
 PATH:=$(GOPATH)/bin:$(PATH)
 
