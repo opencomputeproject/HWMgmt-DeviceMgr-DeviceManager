@@ -59,10 +59,11 @@ Use this command to install and run Device Manager together with ODIM services, 
 $ make all
 ```
 
-## Register Device Manager in ODIM
-After installation, you have to add Device Manager plugin to ODIM. This is done by using Aggregation Sources.
-First, we need to know ID of Connection Method, which is of variant DM_v1.0.0. To do so, perform HTTP `GET` on the following URI `https://{odim_host}:{port}/redfish/v1/AggregationService/ConnectionMethods`, 
-providing `{user}:{password}` (default username is `admin` and default password is `Od!m12$4`).
+## Register Device Manager
+After installation, you have to register Device Manager to ODIM. This is done by using Aggregation Sources.
+First, we need to know ID of Connection Method, which is of variant DM_v1.0.0. To do so, perform HTTP `GET`
+on the following URI `https://{device-manager_host}:{port}/redfish/v1/AggregationService/ConnectionMethods`, 
+providing `{user}:{password}` (default username is `admin` and default password is `D3v1ceMgr`).
 Check each record, to find the proper Connection Method.
 
 ```shell
@@ -84,14 +85,14 @@ Dload  Upload   Total   Spent    Left  Speed
 }
 ```
 
-Next, perform HTTP `POST` on the URI: `https://{odim_host}:{port}/redfish/v1/AggregationService/AggregationSources` with the following body:
+Next, perform HTTP `POST` on the URI: `https://{device-manager_host}:{port}/redfish/v1/AggregationService/AggregationSources`
+with the following body (remember to replace ConnectionMethod with one that was found in previous request):
 
 ```shell
-curl --location -X POST -k -u '{user}:{password}' 'https://odim.local.com:45000/redfish/v1/AggregationService/AggregationSources' \
---header 'Authorization: Basic YWRtaW46T2QhbTEyJDQ=' \
+curl --location -X POST -k -u '{user}:{password}' 'https://127.0.0.1:45000/redfish/v1/AggregationService/AggregationSources' \
 --header 'Content-Type: application/json' \
 --data-raw '{
-"HostName": "localhost:45003",
+"HostName": "device-manager:45003",
 "UserName": "admin",
 "Password": "D3v1ceMgr",
 "Links": {
@@ -103,10 +104,10 @@ curl --location -X POST -k -u '{user}:{password}' 'https://odim.local.com:45000/
 ```
 After sending the request, Redfish task is created and a link to the task monitor associated with it is returned.
 
-To add a BMC as an Aggregation source, firstly certificates must be imported in BMC server. Then, you can send another HTTP `POST` on the URI: `https://{odim_host}:{port}/redfish/v1/AggregationService/AggregationSources` with the following body:
+To add a BMC as an Aggregation source, firstly certificates must be imported in BMC server. Then, you can send another HTTP `POST` on the
+URI: `https://{device-manager_host}:{port}/redfish/v1/AggregationService/AggregationSources` with the following body:
 ```shell
-curl --location -X POST -k -u '{user}:{password}' 'https://odim.local.com:45000/redfish/v1/AggregationService/AggregationSources' \
---header 'Authorization: Basic YWRtaW46T2QhbTEyJDQ=' \
+curl --location -X POST -k -u '{user}:{password}' 'https://127.0.0.1:45000/redfish/v1/AggregationService/AggregationSources' \
 --header 'Content-Type: application/json' \
 --data-raw '{
 "HostName": "{BMC_address}",
@@ -121,7 +122,7 @@ curl --location -X POST -k -u '{user}:{password}' 'https://odim.local.com:45000/
 ```
 After sending the request, Redfish task is created and a link to the task monitor associated with it is returned.
 
-When tasks are finished, the following `GET` send on `https://{odim_host}:{port}/redfish/v1/AggregationService/ConnectionMethods/{ConnectionMethodID}` will show two previously added Aggregation sources.
+When tasks are finished, the following `GET` send on `https://{device-manager_host}:{port}/redfish/v1/AggregationService/ConnectionMethods/{ConnectionMethodID}` will show two previously added Aggregation sources.
 
 ```shell
 curl  -k -u  '{user}:{password}' https://127.0.0.1:45000/redfish/v1/AggregationService/ConnectionMethods/3326bd25-c230-4083-95d7-a51b7af5bec3 | jq
