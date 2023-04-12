@@ -206,7 +206,7 @@ func (e errorIndex) String(args ...string) string {
 		/*ErrSWUpdateNotImplemented*/ "The software update does not implement in the device",
 		/*ErrGetResetTypeFailed*/ "Failed to get the device reset type",
 		/*ErrResetTypeEmpty*/ "The device system reset type is empty",
-		/*ErrResetTypeNotsupport*/ "The device reset type (" + argsStrs[0] + ") does not support, The supported reset type are \"" + argsStrs[1] + "\"",
+		/*ErrResetTypeNotsupport*/ "The device reset type (" + argsStrs[0] + ") does not support, The supported reset type are: " + argsStrs[1],
 		/*ErrResetSystemFailed*/ "Failed to reset system, status code " + argsStrs[0],
 		/*ErrGetTemperDataFailed*/ "Failed to get device temperature data",
 		/*ErrConvertTemperDataFailed*/ "Failed to convert temperature data",
