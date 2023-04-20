@@ -59,6 +59,8 @@ Use this command to install and run Device Manager together with ODIM services, 
 $ make all
 ```
 
+Once that make is complete, the Redfish interface will be available at 127.0.0.1:45000. The port number is specified by the **odimra_config.json** file, property **APIGatewayConf.Port**. The Redfish interface is used to create a connection to Device Manager.
+
 ## Register Device Manager
 After installation, you have to register Device Manager to ODIM. This is done by using Aggregation Sources.
 First, we need to know ID of Connection Method, which is of variant DM_v1.0.0. To do so, perform HTTP `GET`
