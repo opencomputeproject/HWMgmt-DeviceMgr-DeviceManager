@@ -78,6 +78,9 @@ func createRouting(app *iris.Application, config config.Config) {
 		capacitySources.Get("/{id}/ProvidingVolumes/{id2}", getGenericResourceHandler)
 		capacitySources.Get("/{id}/ProvidingDrives", getGenericResourceHandler)
 
+		update := routes.Party("/UpdateService", basicAuthHandler)
+		update.Post("/Actions/UpdateService.SimpleUpdate", newPostSimpleUpdateHandler(config))
+
 		managers := routes.Party("/Managers", basicAuthHandler)
 		managers.Get("", newManagersCollectionHandler(config))
 		managers.Get("/{id}", newManagerHandler(config))
