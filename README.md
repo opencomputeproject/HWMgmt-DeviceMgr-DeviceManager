@@ -42,7 +42,7 @@ Before building Device Manager, the following steps are required:
   ```
 - Docker 20.10.18 (minimum version) installed,
 - Certificates delivered or generated and placed into (project root)/build/certs (create this folder if necessary) (scripts for generation can be found [here](https://github.com/ODIM-Project/ODIM/tree/main/build/cert_generator)),
-- Config changes to fit your needs(insert your own password in configs below - use SHA3-512 hash and encode it with base64):
+- Config changes to fit your needs(insert your own passwords in configs below (passwords can be different between configs) - use SHA3-512 hash and encode it with base64):
   - **Device Manager**
     - (project root)/svc-device-manager/config/config.yml
       - Basic Authentication -> Password
