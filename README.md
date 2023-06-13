@@ -42,13 +42,16 @@ Before building Device Manager, the following steps are required:
   ```
 - Docker 20.10.18 (minimum version) installed,
 - Certificates delivered or generated and placed into (project root)/build/certs (create this folder if necessary) (scripts for generation can be found [here](https://github.com/ODIM-Project/ODIM/tree/main/build/cert_generator)),
-- Config changes to fit your needs:
+- Config changes to fit your needs(insert your own passwords in configs below (passwords can be different between configs) - use SHA3-512 hash and encode it with base64):
   - **Device Manager**
     - (project root)/svc-device-manager/config/config.yml
+      - Basic Authentication -> Password
   - **ODIM services**
     - (project root)/lib-utilities/config/odimra_config.json
   - **Redis**
     - (project root)/build/redis/redis.conf
+    - (project root)/build/redis/createSchema.sh
+      - Line 4 -> "Password":"your_password_here"
   - **Etcd**
     - (project root)/build/etcd/etcd.yml
 
@@ -65,7 +68,7 @@ Once that make is complete, the Redfish interface will be available at 127.0.0.1
 After installation, you have to register Device Manager to ODIM. This is done by using Aggregation Sources.
 First, we need to know ID of Connection Method, which is of variant DM_v1.0.0. To do so, perform HTTP `GET`
 on the following URI `https://{device-manager_host}:{port}/redfish/v1/AggregationService/ConnectionMethods`, 
-providing `{user}:{password}` (default username is `admin` and default password is `D3v1ceMgr`).
+providing `{user}:{password}` (your chosen username and password).
 Check each record, to find the proper Connection Method.
 
 ```shell
@@ -96,7 +99,7 @@ curl --location -X POST -k -u '{user}:{password}' 'https://127.0.0.1:45000/redfi
 --data-raw '{
 "HostName": "device-manager:45003",
 "UserName": "admin",
-"Password": "D3v1ceMgr",
+"Password": "your_password",
 "Links": {
 "ConnectionMethod": {
 "@odata.id": "/redfish/v1/AggregationService/ConnectionMethods/3326bd25-c230-4083-95d7-a51b7af5bec3"
