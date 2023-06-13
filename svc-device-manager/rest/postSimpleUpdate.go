@@ -72,6 +72,7 @@ func (r *postSimpleUpdateHandler) handle(ctx iris.Context) {
 	}
 
 	ctx.StatusCode(response.StatusCode)
+	ctx.Header("Location", response.Header.Get("Location"))
 	ctx.Write(body)
 }
 
