@@ -40,7 +40,7 @@ func (r *postSimpleUpdateHandler) handle(ctx iris.Context) {
 	// Validate Simple Update request
 	err = validateSimpleUpdateAction(reqInfo.Body)
 	if err != nil {
-		simpleUpdateRequestError := "invalid simple update request: %s" + err.Error()
+		simpleUpdateRequestError := fmt.Sprintf("invalid simple update request: %s", err.Error())
 		logrus.Error(simpleUpdateRequestError)
 		ctx.StatusCode(http.StatusBadRequest)
 		ctx.WriteString(simpleUpdateRequestError)
