@@ -333,6 +333,10 @@ func getLinksFromAggregate(token string, aggregate string) ([]string, error) {
 		RequestBody:  nil,
 		URL:          aggregate,
 	})
+	if err != nil {
+		errorMsg := fmt.Errorf("failed to get an aggregate, err: %s", err)
+		return nil, errorMsg
+	}
 
 	var aggregateResp AggregateResponse
 	err = json.Unmarshal(resp.Body, &aggregateResp)
