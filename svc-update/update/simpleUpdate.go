@@ -96,7 +96,7 @@ func (e *ExternalInterface) SimpleUpdate(taskID string, sessionUserName string, 
 	for i := 0; i < len(targetList); i++ {
 		select {
 		case statusCode := <-subTaskChannel:
-			if statusCode != http.StatusOK {
+			if statusCode != http.StatusOK && statusCode != http.StatusAccepted {
 				partialResultFlag = true
 				if resp.StatusCode < statusCode {
 					resp.StatusCode = statusCode
