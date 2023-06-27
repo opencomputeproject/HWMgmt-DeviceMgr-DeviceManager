@@ -19,9 +19,12 @@ package update
 // IMPORT Section
 //
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	aggregatorproto "github.com/ODIM-Project/ODIM/lib-utilities/proto/aggregator"
+	"github.com/ODIM-Project/ODIM/lib-utilities/services"
 	"net/http"
 	"runtime"
 	"strings"
@@ -70,7 +73,14 @@ func (e *ExternalInterface) SimpleUpdate(taskID string, sessionUserName string, 
 	}
 
 	targetList := make(map[string][]string)
-	targetList, err = sortTargetList(updateRequest.Targets)
+	links, err := expandAggregatesCollection(req.SessionToken, updateRequest.Targets)
+	if err != nil {
+		errMsg := "Unable to get links from aggregates: " + err.Error()
+		log.Warn(errMsg)
+		return common.GeneralError(http.StatusInternalServerError, response.InternalError, errMsg, nil, taskInfo)
+	}
+
+	targetList, err = sortTargetList(links)
 	if err != nil {
 		errorMessage := "SystemUUID not found"
 		log.Warn(errorMessage)
@@ -293,4 +303,53 @@ func sortTargetList(Targets []string) (map[string][]string, error) {
 		returnList[uuid] = append(returnList[uuid], individualTarget)
 	}
 	return returnList, nil
+}
+
+func expandAggregatesCollection(token string, links []string) ([]string, error) {
+	elements := make([]string, 0)
+	for _, link := range links {
+		if strings.Contains(link, "Aggregates") {
+			aggregateCollection, err := getLinksFromAggregate(token, link)
+			if err != nil {
+				return nil, err
+			}
+			elements = append(elements, aggregateCollection...)
+		} else {
+			elements = append(elements, link)
+		}
+	}
+	return elements, nil
+}
+
+func getLinksFromAggregate(token string, aggregateCollectionUrl string) ([]string, error) {
+	aggregatorConn, err := services.ODIMService.Client(services.Aggregator)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to create client connection with AggregationService: %v", err)
+		return nil, errors.New(errMsg)
+	}
+	defer aggregatorConn.Close()
+	aggregatorService := aggregatorproto.NewAggregatorClient(aggregatorConn)
+	resp, err := aggregatorService.GetAggregate(context.TODO(), &aggregatorproto.AggregatorRequest{
+		SessionToken: token,
+		RequestBody:  nil,
+		URL:          aggregateCollectionUrl,
+	})
+	if err != nil {
+		errorMsg := fmt.Errorf("failed to get an aggregate, err: %s", err)
+		return nil, errorMsg
+	}
+
+	var aggregateResp AggregateResponse
+	err = json.Unmarshal(resp.Body, &aggregateResp)
+	if err != nil {
+		errorMsg := fmt.Errorf("could not unmarshal aggregate response, err: %s", err)
+		return nil, errorMsg
+	}
+
+	return aggregateResp.Elements, nil
+}
+
+type AggregateResponse struct {
+	response.Response
+	Elements []string `json:"Elements"`
 }
