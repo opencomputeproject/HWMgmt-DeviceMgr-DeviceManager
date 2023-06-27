@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-svcs=("svc-account-session" "svc-aggregation" "svc-api" "svc-events" "svc-systems" "svc-task")
+svcs=("svc-account-session" "svc-aggregation" "svc-api" "svc-events" "svc-systems" "svc-task" "svc-update" "svc-managers")
 port=45101
 for svc in ${svcs[@]}; do
   if [ $svc == 'svc-api' ]
