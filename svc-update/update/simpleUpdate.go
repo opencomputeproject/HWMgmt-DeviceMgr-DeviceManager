@@ -79,6 +79,7 @@ func (e *ExternalInterface) SimpleUpdate(taskID string, sessionUserName string, 
 		log.Warn(errMsg)
 		return common.GeneralError(http.StatusInternalServerError, response.InternalError, errMsg, nil, taskInfo)
 	}
+
 	targetList, err = sortTargetList(links)
 	if err != nil {
 		errorMessage := "SystemUUID not found"
@@ -308,11 +309,11 @@ func expandAggregatesCollection(token string, links []string) ([]string, error) 
 	elements := make([]string, 0)
 	for _, link := range links {
 		if strings.Contains(link, "Aggregates") {
-			aggregate, err := getLinksFromAggregate(token, link)
+			aggregateCollection, err := getLinksFromAggregate(token, link)
 			if err != nil {
 				return nil, err
 			}
-			elements = append(elements, aggregate...)
+			elements = append(elements, aggregateCollection...)
 		} else {
 			elements = append(elements, link)
 		}
@@ -320,10 +321,10 @@ func expandAggregatesCollection(token string, links []string) ([]string, error) 
 	return elements, nil
 }
 
-func getLinksFromAggregate(token string, aggregate string) ([]string, error) {
+func getLinksFromAggregate(token string, aggregateCollectionUrl string) ([]string, error) {
 	aggregatorConn, err := services.ODIMService.Client(services.Aggregator)
 	if err != nil {
-		errMsg := fmt.Sprintf("Failed to create client connection with AggregateService: %v", err)
+		errMsg := fmt.Sprintf("Failed to create client connection with AggregationService: %v", err)
 		return nil, errors.New(errMsg)
 	}
 	defer aggregatorConn.Close()
@@ -331,7 +332,7 @@ func getLinksFromAggregate(token string, aggregate string) ([]string, error) {
 	resp, err := aggregatorService.GetAggregate(context.TODO(), &aggregatorproto.AggregatorRequest{
 		SessionToken: token,
 		RequestBody:  nil,
-		URL:          aggregate,
+		URL:          aggregateCollectionUrl,
 	})
 	if err != nil {
 		errorMsg := fmt.Errorf("failed to get an aggregate, err: %s", err)
