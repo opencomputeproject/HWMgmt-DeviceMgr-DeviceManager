@@ -15,8 +15,7 @@ TLSConf:
 
 ### Basic Authentication
 UserName: admin
-### Default password: D3v1ceMgr
-Password: YmzjkpHW8NIKoLJ6Lp5bufhl6bosH8U7Gy7rLeo8t8ixFk5soWalYa4FX8m8cjnfI6AKtoxTo7DfGdphNk3Y8g==
+Password: #insert_your_password_here
 
 ### Redfish service root UUID for Device Manager
 RootServiceUUID: 99999999-9999-9999-9999-999999999999
