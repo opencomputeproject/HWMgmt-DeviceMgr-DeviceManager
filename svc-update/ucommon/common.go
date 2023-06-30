@@ -216,7 +216,7 @@ func ContactPlugin(req PluginContactRequest, errorMessage string) ([]byte, strin
 		return nil, "", resp, fmt.Errorf(errorMessage)
 	}
 
-	if pluginResponse.StatusCode != http.StatusCreated && pluginResponse.StatusCode != http.StatusOK {
+	if pluginResponse.StatusCode != http.StatusCreated && pluginResponse.StatusCode != http.StatusOK && pluginResponse.StatusCode != http.StatusAccepted {
 		if pluginResponse.StatusCode == http.StatusUnauthorized {
 			errorMessage += "error: invalid resource username/password"
 			resp.StatusCode = int32(pluginResponse.StatusCode)
@@ -230,6 +230,12 @@ func ContactPlugin(req PluginContactRequest, errorMessage string) ([]byte, strin
 		resp.StatusMessage = response.InternalError
 		log.Warn(errorMessage)
 		return body, "", resp, fmt.Errorf(errorMessage)
+	}
+
+	if pluginResponse.StatusCode == http.StatusAccepted {
+		resp.StatusCode = int32(pluginResponse.StatusCode)
+		resp.StatusMessage = response.TaskStarted
+		log.Infof("Task URI retrieved from BMC server: %s", pluginResponse.Header.Get("Location"))
 	}
 
 	data := string(body)
