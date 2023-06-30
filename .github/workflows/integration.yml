@@ -1,0 +1,122 @@
+name: integration
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Set up repository
+      uses: actions/checkout@v3
+      with:
+          ref: main
+    
+    - name: Install go
+      run: |
+        sudo make go-install
+        make prereq
+
+    - name: Download scripts for generating certs
+      run: |
+        mkdir -p /tmp/certs
+        wget -P /tmp/certs https://raw.githubusercontent.com/ODIM-Project/ODIM/main/build/cert_generator/generate_client_crt.sh 
+        wget -P /tmp/certs https://raw.githubusercontent.com/ODIM-Project/ODIM/main/build/cert_generator/generate_etcd_certs.sh 
+        wget -P /tmp/certs https://raw.githubusercontent.com/ODIM-Project/ODIM/main/build/cert_generator/generate_odimra_cert.sh 
+
+    - name: Generate certs
+      run: |
+        sed -i 's/URP/device-manager/' /tmp/certs/generate_odimra_cert.sh
+        cp /tmp/certs/* build/certs
+        cd $GITHUB_WORKSPACE/build/certs
+        chmod +x generate_odimra_cert.sh 
+        ./generate_odimra_cert.sh deviceManager
+        
+    - name: Install Device Manager and ODIM's services
+      id: installDeviceMgrAndODIM
+      run: |
+        sudo apt -y install jq
+        cd $GITHUB_WORKSPACE
+        make all
+
+    - name: Add BMC hostname to hosts file
+      run: |
+        ip=$(hostname -I | awk '{print $1}')
+        sudo sed -i '$a '"$ip"' bmcsim' /etc/hosts
+        echo "IP=$ip" >> "$GITHUB_ENV"
+
+    - name: Install BMC
+      run: |
+        sudo apt -y install default-jre
+        cd ..
+        git clone https://github.com/ODIM-Project/BMCSimulator.git
+        cd BMCSimulator
+        ./gradlew executableJar
+        sudo cp $GITHUB_WORKSPACE/build/certs/rootCA.* .
+        sudo chown $USER rootCA.*
+        ./generate_bmc_certs.sh bmcsim
+        cp src/main/resources/odim-simulator-config.json .
+        echo "$(jq '.security.httpClient.basicCredentials = "admin:D3v1ceMgr"' odim-simulator-config.json)" > odim-simulator-config.json
+        echo "$(jq -r --arg IP "${{ env.IP }}" '.binding.ip = $IP' odim-simulator-config.json)" > odim-simulator-config.json
+        java -jar build/libs/simulator-runner-1.0-SNAPSHOT.jar run BMC --port 55555 -c odim-simulator-config.json &
+
+    - name: Retrieve Connection method URI
+      id: retrieveConnectionMethodURI
+      if: steps.installDeviceMgrAndODIM.outcome == 'success'
+      run: |
+        connectionMethodURI=$(curl -k -u 'admin:D3v1ceMgr' https://127.0.0.1:45000/redfish/v1/AggregationService/ConnectionMethods | jq  '.Members[0]."@odata.id"')
+        echo "CONNECTION_METHOD_URI=$connectionMethodURI" >> "$GITHUB_ENV"
+
+    - name: Add Device Manager as an Aggregation Source
+      run: |
+        responseType=$(curl --location -X POST -k -u 'admin:D3v1ceMgr' 'https://127.0.0.1:45000/redfish/v1/AggregationService/AggregationSources' \
+        --header 'Content-Type: application/json' \
+        --data-raw '{
+          "HostName": "device-manager:45003",
+          "UserName": "admin",
+          "Password": "D3v1ceMgr",
+          "Links": {
+            "ConnectionMethod": {
+            "@odata.id": ${{ env.CONNECTION_METHOD_URI }}
+            }
+          }
+        }'| jq -e '."@odata.type"?' )
+        if [[ $responseType != *"Task"*  ]]; then exit 1; fi
+
+    - name: Add BMC as an Aggregation Source
+      run: |
+        aggregationResponse=$(curl --location -X POST -k -u 'admin:D3v1ceMgr' 'https://127.0.0.1:45000/redfish/v1/AggregationService/AggregationSources' \
+        --header 'Content-Type: application/json' \
+        --data-raw '{
+          "HostName": "bmcsim:55555",
+          "UserName": "admin",
+          "Password": "admin",
+          "Links": {
+              "ConnectionMethod": {
+              "@odata.id": ${{ env.CONNECTION_METHOD_URI }}
+              }
+          }
+        }')
+        
+        if [[ $(echo $aggregationResponse | jq -e '."@odata.type"?') != *"Task"*  ]]; then exit 1; fi
+        taskURI=$(echo $aggregationResponse | jq --raw-output -e '."@odata.id"?')
+        baseURI="https://127.0.0.1:45000"
+
+        while [[ $(curl -k -u 'admin:D3v1ceMgr' ${baseURI}${taskURI} | jq -e '."TaskState"?') == *"Running"* ]]; do sleep 10; done
+        
+        if [[ $(curl -k -u 'admin:D3v1ceMgr' ${baseURI}${taskURI} | jq -e '."TaskState"?') == *"Exception"* ]]; then exit 1; fi
+
+    - name: Get number of AggregationSources
+      run: |  
+        numberOfAggregationSources=$(curl -k -u 'admin:D3v1ceMgr' https://127.0.0.1:45000/redfish/v1/AggregationService/AggregationSources | jq '.Members | length')
+        echo "NUMBER_OF_AGGREGATION_SOURCES=$numberOfAggregationSources" >> "$GITHUB_ENV"
+
+    - name: Check number of AggregationSources
+      if: env.NUMBER_OF_AGGREGATION_SOURCES !=2
+      run: exit 1
