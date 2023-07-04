@@ -22,6 +22,10 @@ jobs:
       run: |
         sudo make go-install
         make prereq
+        echo "GOROOT=/usr/local/go" >> "$GITHUB_ENV"
+        echo "GOPATH=$HOME/app" >> "$GITHUB_ENV"
+        echo "${{ env.GOPATH }}/bin" >> "$GITHUB_PATH"
+        echo "${{ env.GOROOT }}/bin" >> "$GITHUB_PATH"
 
     - name: Download scripts for generating certs
       run: |
