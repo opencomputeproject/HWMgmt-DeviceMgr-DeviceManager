@@ -34,6 +34,11 @@ jobs:
         wget -P /tmp/certs https://raw.githubusercontent.com/ODIM-Project/ODIM/main/build/cert_generator/generate_etcd_certs.sh 
         wget -P /tmp/certs https://raw.githubusercontent.com/ODIM-Project/ODIM/main/build/cert_generator/generate_odimra_cert.sh 
 
+    - name: Set passwords
+      run: | 
+        sed -i 's/#insert_your_password_here/YmzjkpHW8NIKoLJ6Lp5bufhl6bosH8U7Gy7rLeo8t8ixFk5soWalYa4FX8m8cjnfI6AKtoxTo7DfGdphNk3Y8g==/' $GITHUB_WORKSPACE/svc-device-manager/config/config.yml
+        sed -i 's/your_password_here/YmzjkpHW8NIKoLJ6Lp5bufhl6bosH8U7Gy7rLeo8t8ixFk5soWalYa4FX8m8cjnfI6AKtoxTo7DfGdphNk3Y8g==/' $GITHUB_WORKSPACE/build/redis/createSchema.sh
+
     - name: Generate certs
       run: |
         sed -i 's/URP/device-manager/' /tmp/certs/generate_odimra_cert.sh
