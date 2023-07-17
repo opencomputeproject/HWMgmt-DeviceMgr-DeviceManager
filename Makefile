@@ -91,8 +91,7 @@ go-install:
 	@echo "export GOROOT=${GO_DIR}" >> $(HOME)/.bashrc
 	@echo "export GOPATH=$(HOME)/app" >> $(HOME)/.bashrc
 	@echo "export PATH=$(HOME)/app/bin:${GO_DIR}/bin:$$PATH" >> $(HOME)/.bashrc
-	@echo "!!Please use this command to take effect environment variable!!"
-	source $(HOME)/.bashrc
+	@echo "!!Please source ~./bashrc file to take effect environment variable!!"
 
 prereq:
 	curl -L -o /tmp/protoc-${PROTOC_VERSION}-linux-x86_64.zip \
