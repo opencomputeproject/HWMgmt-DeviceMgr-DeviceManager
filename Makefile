@@ -102,7 +102,7 @@ prereq:
 	 && sudo mv /tmp/protoc3/bin/* /usr/local/bin/ \
 	 && sudo mv /tmp/protoc3/include/* /usr/local/include/
 	rm -rf /tmp/protoc3
-	GOROOT=${GO_DIR} GOPATH=$(HOME)/app ${GO_BIN_PATH}/go get -v google.golang.org/grpc
+	GOROOT=${GO_DIR} GOPATH=$(HOME)/app ${GO_BIN_PATH}/go get -v google.golang.org/grpc@v1.57.0
 	GOROOT=${GO_DIR} GOPATH=$(HOME)/app ${GO_BIN_PATH}/go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 	GOROOT=${GO_DIR} GOPATH=$(HOME)/app ${GO_BIN_PATH}/go install github.com/golang/protobuf/protoc-gen-go@v1.3.2
 
