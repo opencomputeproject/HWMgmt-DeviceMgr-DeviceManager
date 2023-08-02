@@ -103,12 +103,13 @@ func Router() *iris.Application {
 	}
 
 	cha := handle.ChassisRPCs{
-		GetChassisCollectionRPC: rpc.GetChassisCollection,
-		GetChassisResourceRPC:   rpc.GetChassisResource,
-		GetChassisRPC:           rpc.GetChassis,
-		CreateChassisRPC:        rpc.CreateChassis,
-		DeleteChassisRPC:        rpc.DeleteChassis,
-		UpdateChassisRPC:        rpc.UpdateChassis,
+		GetChassisCollectionRPC:  rpc.GetChassisCollection,
+		GetChassisResourceRPC:    rpc.GetChassisResource,
+		GetChassisRPC:            rpc.GetChassis,
+		CreateChassisRPC:         rpc.CreateChassis,
+		DeleteChassisRPC:         rpc.DeleteChassis,
+		UpdateChassisRPC:         rpc.UpdateChassis,
+		UpdateChassisResourceRPC: rpc.UpdateChassisResource,
 	}
 
 	evt := handle.EventsRPCs{
@@ -478,6 +479,7 @@ func Router() *iris.Application {
 	chassis.Any("/{id}/LogServices/{rid}/Actions", handle.ChassisMethodNotAllowed)
 
 	chassisPower := chassis.Party("/{id}/Power")
+	chassisPower.Patch("/", cha.UpdateChassisResource)
 	chassisPower.SetRegisterRule(iris.RouteSkip)
 	chassisPower.Get("/", cha.GetChassisResource)
 	chassisPower.Get("#PowerControl/{id1}", cha.GetChassisResource)
