@@ -59,6 +59,23 @@ type ChassisRPC struct {
 	CreateHandler        *chassis.Create
 }
 
+func (cha *ChassisRPC) UpdateChassisResource(ctx context.Context, req *chassisproto.UpdateChassisResourceRequest) (*chassisproto.GetChassisResponse, error) {
+	var resp chassisproto.GetChassisResponse
+	sessionToken := req.SessionToken
+	authResp := cha.IsAuthorizedRPC(sessionToken, []string{common.PrivilegeLogin}, []string{})
+	if authResp.StatusCode != http.StatusOK {
+		rewrite(authResp, &resp)
+		return &resp, nil
+	}
+	var pc = chassis.PluginContact{
+		ContactClient:   pmbhandle.ContactPlugin,
+		DecryptPassword: common.DecryptWithPrivateKey,
+		GetPluginStatus: scommon.GetPluginStatus,
+	}
+	data, _ := pc.UpdateChassisResource(req)
+	rewrite(data, &resp)
+	return &resp, nil
+}
 func (cha *ChassisRPC) UpdateChassis(ctx context.Context, req *chassisproto.UpdateChassisRequest) (*chassisproto.GetChassisResponse, error) {
 	var resp chassisproto.GetChassisResponse
 	r := auth(cha.IsAuthorizedRPC, req.SessionToken, []string{common.PrivilegeConfigureComponents}, func() response.RPC {
