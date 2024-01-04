@@ -143,6 +143,7 @@ func (h *HttpClient) Post(uri string, requestBody []byte) (*http.Response, error
 	return resp, nil
 }
 
+// Patch sends PATCH action to a requested endpoint with requested body.
 func (h *HttpClient) Patch(uri string, requestBody []byte) (*http.Response, error) {
 	requestedUrl, err := url.Parse(uri)
 	if err != nil {

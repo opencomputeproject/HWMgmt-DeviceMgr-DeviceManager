@@ -239,26 +239,26 @@ func (chassis *ChassisRPCs) UpdateChassisResource(ctx iris.Context) {
 	e := ctx.ReadJSON(requestBody)
 	if e != nil {
 		errorMessage := "error while trying to read obligatory json body: " + e.Error()
-		log.Println(errorMessage)
+		log.Warn(errorMessage)
 		response := common.GeneralError(http.StatusBadRequest, response.MalformedJSON, errorMessage, nil, nil)
 		common.SetResponseHeader(ctx, response.Header)
 		ctx.StatusCode(http.StatusBadRequest)
 		ctx.JSON(&response.Body)
 		return
 	}
-	rr, rerr := chassis.UpdateChassisResourceRPC(chassisproto.UpdateChassisResourceRequest{
+	rpcResponse, err := chassis.UpdateChassisResourceRPC(chassisproto.UpdateChassisResourceRequest{
 		SessionToken: ctx.Request().Header.Get("X-Auth-Token"),
 		URL:          ctx.Request().RequestURI,
 		RequestBody:  *requestBody,
 	})
 
-	if rerr != nil {
-		log.Println("RPC error:" + rerr.Error())
-		re := common.GeneralError(http.StatusInternalServerError, response.InternalError, rerr.Error(), nil, nil)
+	if err != nil {
+		log.Println("RPC error:" + err.Error())
+		re := common.GeneralError(http.StatusInternalServerError, response.InternalError, err.Error(), nil, nil)
 		writeResponse(ctx, re.Header, re.StatusCode, re.Body)
 		return
 	}
 
-	writeResponse(ctx, rr.Header, rr.StatusCode, rr.Body)
+	writeResponse(ctx, rpcResponse.Header, rpcResponse.StatusCode, rpcResponse.Body)
 
 }

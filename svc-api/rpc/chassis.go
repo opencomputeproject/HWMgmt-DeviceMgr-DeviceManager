@@ -124,7 +124,7 @@ func UpdateChassisResource(req chassisproto.UpdateChassisResourceRequest) (*chas
 
 	resp, err := service.UpdateChassisResource(context.TODO(), &req)
 	if err != nil && resp == nil {
-		return nil, fmt.Errorf("error: something went wrong with rpc call: %v", err)
+		return nil, fmt.Errorf("Something went wrong with rpc call: %v", err)
 	}
 
 	return resp, err
