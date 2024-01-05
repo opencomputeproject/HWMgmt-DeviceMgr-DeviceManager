@@ -113,7 +113,8 @@
 		"TaskService",
 		"EventService",
 		"Managers",
-		"UpdateService"
+		"UpdateService",
+		"TelemetryService"
 	],
 	"SupportedPluginTypes" : ["Compute", "Fabric", "Storage"],
   "ConnectionMethodConf": [
