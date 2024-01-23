@@ -19,7 +19,6 @@ package rpc
 import (
 	"context"
 	"fmt"
-
 	chassisproto "github.com/ODIM-Project/ODIM/lib-utilities/proto/chassis"
 	"github.com/ODIM-Project/ODIM/lib-utilities/services"
 )
@@ -112,4 +111,21 @@ func UpdateChassis(req chassisproto.UpdateChassisRequest) (*chassisproto.GetChas
 		return nil, fmt.Errorf("RPC error: %v", err)
 	}
 	return resp, nil
+}
+
+//UpdateChassisResource will do the rpc call to update a chassis resource
+func UpdateChassisResource(req chassisproto.UpdateChassisResourceRequest) (*chassisproto.GetChassisResponse, error) {
+	conn, err := services.ODIMService.Client(services.Systems)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create client connection: %v", err)
+	}
+	defer conn.Close()
+	service := chassisproto.NewChassisClient(conn)
+
+	resp, err := service.UpdateChassisResource(context.TODO(), &req)
+	if err != nil && resp == nil {
+		return nil, fmt.Errorf("Something went wrong with rpc call: %v", err)
+	}
+
+	return resp, err
 }

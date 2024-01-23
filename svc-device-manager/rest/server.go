@@ -30,6 +30,13 @@ func createRouting(app *iris.Application, config config.Config) {
 
 	routes := app.Party("/ODIM/v1")
 	{
+		chassis := routes.Party("/Chassis", basicAuthHandler)
+		chassis.Get("", getGenericResourceHandler)
+		chassis.Get("/{id}", getGenericResourceHandler)
+		chassis.Get("/{id}/Thermal", getGenericResourceHandler)
+		chassisPower := chassis.Party("/{id}/Power")
+		chassisPower.Patch("", newPatchPowerHandler(config))
+		chassisPower.Get("", getGenericResourceHandler)
 		systems := routes.Party("/Systems", basicAuthHandler)
 		systems.Get("", getGenericResourceHandler)
 		systems.Get("/{id}", getGenericResourceHandler)

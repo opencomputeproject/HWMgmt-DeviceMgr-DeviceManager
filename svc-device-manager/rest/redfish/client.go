@@ -143,6 +143,40 @@ func (h *HttpClient) Post(uri string, requestBody []byte) (*http.Response, error
 	return resp, nil
 }
 
+// Patch sends PATCH action to a requested endpoint with requested body.
+func (h *HttpClient) Patch(uri string, requestBody []byte) (*http.Response, error) {
+	requestedUrl, err := url.Parse(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	body := io.NopCloser(bytes.NewBuffer(requestBody))
+	req := &http.Request{
+		Method: http.MethodPatch,
+		URL:    requestedUrl,
+		Body:   body,
+		Header: http.Header{},
+	}
+	h.addDefaultHeaders(req)
+
+	err = translateRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := h.client.Do(req)
+	if err != nil {
+		return resp, err
+	}
+
+	err = translateResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 func translateRequest(req *http.Request) error {
 	req.URL, _ = url.Parse(utils.UriConverter.DmToRedfish(req.URL.String()))
 
