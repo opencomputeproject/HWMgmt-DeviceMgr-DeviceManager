@@ -3,7 +3,8 @@ FROM ubuntu:20.04
 RUN mkdir -p /etc/deviceManager/configs /etc/deviceManager/certs /etc/deviceManager/registryStore /var/log/deviceManager
 RUN touch /var/log/deviceManager/svc-account-session.log /var/log/deviceManager/svc-aggregation.log \
     /var/log/deviceManager/svc-api.log /var/log/deviceManager/svc-events.log /var/log/deviceManager/svc-systems.log \
-    /var/log/deviceManager/svc-task.log /var/log/deviceManager/svc-device-manager.log
+    /var/log/deviceManager/svc-task.log /var/log/deviceManager/svc-device-manager.log  \
+    /var/log/deviceManager/svc-telemetry.log
 COPY apps/* /usr/local/bin/
 COPY build/runServices.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/runServices.sh /usr/local/bin/svc*
