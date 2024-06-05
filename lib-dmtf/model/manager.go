@@ -47,6 +47,7 @@ type Manager struct {
 	SerialNumber            string            `json:"SerialNumber,omitempty"`
 	ServiceEntryPointUUID   string            `json:"ServiceEntryPointUUID,omitempty"`
 	SerialInterfaces        *Link             `json:"SerialInterfaces,omitempty"`
+	SerialConsole           SerialConsole 	  `json:"SerialConsole,omitempty"`
 	TimeZoneName            string            `json:"TimeZoneName,omitempty"`
 	UUID                    string            `json:"UUID,omitempty"`
 	Measurements            []*Link           `json:"Measurements,omitempty"`
@@ -76,7 +77,7 @@ type ManagerLinks struct {
 	ActiveSoftwareImage     *Link       `json:"ActiveSoftwareImage,omitempty"`
 	ManagedBy               []Link      `json:"ManagedBy,omitempty"`
 	ManagerByCount          int         `json:"ManagedBy@odata.count,omitempty"`
-	ManagerForChassis       []Link      `json:"ManagerForChassis,omitempty"`
+	ManagerForChassis       []Link      `json:"ManagerForChassis"`
 	ManagerForChassisCount  int         `json:"ManagerForChassis@odata.count,omitempty"`
 	ManagerForManagers      []Link      `json:"ManagerForManagers,omitempty"`
 	ManagerForManagersCount int         `json:"ManagerForManagers@odata.count,omitempty"`
@@ -84,7 +85,7 @@ type ManagerLinks struct {
 	ManagerForServersCount  int         `json:"ManagerForServers@odata.count,omitempty"`
 	ManagerForSwitches      []Link      `json:"ManagerForSwitches,omitempty"`
 	ManagerForSwitchesCount int         `json:"ManagerForSwitches@odata.count,omitempty"`
-	ManagerInChassis        []Link      `json:"ManagerInChassis,omitempty"`
+	ManagerInChassis        *Link       `json:"ManagerInChassis,omitempty"`
 	ManagerInChassisCount   int         `json:"ManagerInChassis@odata.count,omitempty"`
 	Oem                     interface{} `json:"Oem,omitempty"`
 	SoftwareImages          *Link       `json:"SoftwareImages,omitempty"`
@@ -130,4 +131,22 @@ type VMActions struct {
 // ActionTarget contains the action target
 type ActionTarget struct {
 	Target string `json:"target"`
+}
+
+// NetworkProtocol contains the property details of NetworkProtocol
+type NetworkProtocol struct{
+	ODataID                 string            `json:"@odata.id"`
+	ODataType               string            `json:"@odata.type"`
+	Description             string            `json:"Description,omitempty"`
+	ID                      string            `json:"Id"`
+	Name                    string            `json:"Name"`
+	Status                  *Status           `json:"Status"`
+	HTTP                  	*HTTP          	  `json:"HTTP"`	
+	HTTPS                  	*HTTP             `json:"HTTPS"`					
+}
+
+// HTTP redfish structure
+type HTTP struct {
+	ProtocolEnabled         string `json:"ProtocolEnabled"`
+	Port     				string `json:"Port"`
 }
