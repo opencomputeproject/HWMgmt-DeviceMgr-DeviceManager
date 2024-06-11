@@ -104,7 +104,7 @@ func (e *ExternalInterface) GetMetricDefinitionCollection(req *teleproto.Telemet
 		// return empty collection response
 		metricDefinitionCollection := tlresp.Collection{
 			OdataContext: "/redfish/v1/$metadata#MetricDefinitionCollection.MetricDefinitionCollection",
-			OdataID:      "/redfish/v1/TelemetryService/MetricDefinitionCollection",
+			OdataID:      "/redfish/v1/TelemetryService/MetricDefinitions",
 			OdataType:    "#MetricDefinitionCollection.MetricDefinitionCollection",
 			Description:  "MetricDefinition Collection view",
 			Name:         "MetricDefinitionCollection",
@@ -132,7 +132,7 @@ func (e *ExternalInterface) GetMetricReportDefinitionCollection(req *teleproto.T
 		// return empty collection response
 		metricReportDefinitionCollection := tlresp.Collection{
 			OdataContext: "/redfish/v1/$metadata#MetricReportDefinitionCollection.MetricReportDefinitionCollection",
-			OdataID:      "/redfish/v1/TelemetryService/MetricReportDefinition",
+			OdataID:      "/redfish/v1/TelemetryService/MetricReportDefinitions",
 			OdataType:    "#MetricReportDefinitionCollection.MetricReportDefinitionCollection",
 			Description:  "MetricReportDefinition Collection view",
 			Name:         "MetricReportDefinitionCollection",
@@ -160,7 +160,7 @@ func (e *ExternalInterface) GetMetricReportCollection(req *teleproto.TelemetryRe
 		// return empty collection response
 		metricReportCollection := tlresp.Collection{
 			OdataContext: "/redfish/v1/$metadata#MetricReportCollection.MetricReportCollection",
-			OdataID:      "/redfish/v1/TelemetryService/MetricReport",
+			OdataID:      "/redfish/v1/TelemetryService/MetricReports",
 			OdataType:    "#MetricReportCollection.MetricReportCollection",
 			Description:  "MetricReport Collection view",
 			Name:         "MetricReportCollection",
