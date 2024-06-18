@@ -84,7 +84,7 @@ func (e *ExternalInterface) UpdateSystemState(updateReq *aggregatorproto.UpdateS
 	}
 
 	//replacing the uuid while saving the data
-	updatedResourceData := updateResourceDataWithUUID(string(rawData), req.DeviceUUID)
+	updatedResourceData := updateResourceDataWithUUID(string(rawData), req.DeviceUUID, req.Plugin.ManagerUUID)
 	var systemInfo map[string]interface{}
 
 	if err := json.Unmarshal([]byte(updatedResourceData), &systemInfo); err != nil {

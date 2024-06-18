@@ -20,7 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"fmt"
-
+	"time"
 	dmtf "github.com/ODIM-Project/ODIM/lib-dmtf/model"
 	"github.com/ODIM-Project/ODIM/lib-utilities/common"
 	"github.com/ODIM-Project/ODIM/lib-utilities/config"
@@ -84,6 +84,7 @@ func registerHandlers() {
 
 	managersproto.RegisterManagersServer(services.ODIMService.Server(), manager)
 }
+
 func addManagertoDB(managerInterface mgrcommon.DBInterface) error {
 	mgr := mgrmodel.RAManager{
 		Name:            "odimra",
@@ -93,12 +94,20 @@ func addManagertoDB(managerInterface mgrcommon.DBInterface) error {
 		UUID:            config.Data.RootServiceUUID,
 		State:           "Enabled",
 		Health:          "OK",
+		HealthRollup:	 "OK",
 		Description:     "Odimra Manager",
 		LogServices: &dmtf.Link{
 			Oid: "/redfish/v1/Managers/" + config.Data.RootServiceUUID + "/LogServices",
 		},
+		EthernetInterfaces:  	 &dmtf.Link{
+			Oid: "/redfish/v1/Managers/" + config.Data.RootServiceUUID + "/EthernetInterfaces",
+		},
+		NetworkProtocol: 		&dmtf.Link{
+			Oid: "/redfish/v1/Managers/" +  config.Data.RootServiceUUID + "/NetworkProtocol",
+		},
 		Model:      "ODIMRA" + " " + config.Data.FirmwareVersion,
 		PowerState: "On",
+		ServiceEntryPointUUID: config.Data.RootServiceUUID, 
 	}
 	managerInterface.AddManagertoDBInterface(mgr)
 
@@ -129,12 +138,14 @@ func addManagertoDB(managerInterface mgrcommon.DBInterface) error {
 		Oid:         "/redfish/v1/Managers/" + config.Data.RootServiceUUID + "/LogServices/SL",
 		Otype:       "#LogService.v1_3_0.LogService",
 		Description: "Logs view",
-		Entries: &dmtf.Entries{
-			Oid: "/redfish/v1/Managers/" + config.Data.RootServiceUUID + "/LogServices/SL/Entries",
-		},
+		Entries: &dmtf.Entries{},
 		ID:              "SL",
 		Name:            "Security Log",
 		OverWritePolicy: "WrapsWhenFull",
+		DateTime: 		 time.Now().Format(time.RFC3339),
+		DateTimeLocalOffset: "+00:00",
+		ServiceEnabled:		true,
+		Status:          &dmtf.Status{State: "Enabled", Health: "OK", HealthRollup: "OK"},
 	}
 	dbdata, err = json.Marshal(logEntrydata)
 	if err != nil {
@@ -142,23 +153,37 @@ func addManagertoDB(managerInterface mgrcommon.DBInterface) error {
 	}
 	key = "/redfish/v1/Managers/" + config.Data.RootServiceUUID + "/LogServices/SL"
 	mgrmodel.GenericSave([]byte(dbdata), "LogServices", key)
-
-	// adding empty logservice entry collection
-	entriesdata := dmtf.Collection{
-		ODataContext: "/redfish/v1/$metadata#LogServiceCollection.LogServiceCollection",
-		ODataID:      "/redfish/v1/Managers/" + config.Data.RootServiceUUID + "/LogServices/SL/Entries",
-		ODataType:    "#LogEntryCollection.LogEntryCollection",
-		Description:  "Security Logs view",
-		Members:      []*dmtf.Link{},
-		MembersCount: 0,
-		Name:         "Security Logs",
+	
+	//adding empty EthernetInterfaces Collection
+	ethernetInterfaces := dmtf.Collection{
+		ODataContext: "/redfish/v1/$metadata#EthernetInterfacesCollection.EthernetInterfacesCollection",
+		ODataID:      "/redfish/v1/Managers/" + config.Data.RootServiceUUID + "/EthernetInterfaces",
+		ODataType:    "#EthernetInterfacesCollection.EthernetInterfacesCollection",
+		Description:  "EthernetInterfaces collection view",
+		Members: 	[]*dmtf.Link{},
+		MembersCount: 1,
+		Name:         "EthernetInterfaces",
 	}
-	dbentriesdata, err := json.Marshal(entriesdata)
+	dbdata, err = json.Marshal(ethernetInterfaces)
 	if err != nil {
 		return fmt.Errorf("unable to marshal manager data: %v", err)
 	}
-	key = "/redfish/v1/Managers/" + config.Data.RootServiceUUID + "/LogServices/SL/Entries"
-	mgrmodel.GenericSave([]byte(dbentriesdata), "EntriesCollection", key)
+	key = "/redfish/v1/Managers/" + config.Data.RootServiceUUID + "/EthernetInterfaces"
+	mgrmodel.GenericSave([]byte(dbdata), "EthernetInterfacesCollection", key)
 
+	//adding NetworkProtocol
+	networkProtocol := dmtf.NetworkProtocol{
+		ODataID:      "/redfish/v1/Managers/" + config.Data.RootServiceUUID + "/NetworkProtocol",
+		ODataType:    "#ManagerNetworkProtocol.ManagerNetworkProtocol",
+		Description:  "NetworkProtocol",
+		ID:			  "NetworkProtocol",
+		Name:         "NetworkProtocol",
+	}
+	dbdata, err = json.Marshal(networkProtocol)
+	if err != nil {
+		log.Error()
+	}
+	key = "/redfish/v1/Managers/" + config.Data.RootServiceUUID + "/NetworkProtocol"
+	mgrmodel.GenericSave([]byte(dbdata), "NetworkProtocol", key)
 	return nil
 }

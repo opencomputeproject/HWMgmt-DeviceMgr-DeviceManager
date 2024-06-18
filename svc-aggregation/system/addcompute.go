@@ -356,6 +356,9 @@ func (e *ExternalInterface) addCompute(taskID, targetURI, pluginID string, perce
 		managerLinks["ManagerForServers"] = serverLink
 		managerData["Links"] = managerLinks
 	}
+
+	addEmptyManagersCollections(aggSourceIDChassisAndManager + plugin.ManagerUUID)
+
 	mgrData, err := json.Marshal(managerData)
 	if err != nil {
 		errorMessage := "unable to marshal data while updating managers detail: " + err.Error()
