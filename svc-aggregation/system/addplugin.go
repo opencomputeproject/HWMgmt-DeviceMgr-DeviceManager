@@ -204,6 +204,52 @@ func (e *ExternalInterface) addPluginData(req AddResourceRequest, taskID, target
 
 		return common.GeneralError(http.StatusConflict, response.ResourceAlreadyExists, errMsg, []interface{}{"Plugin", "PluginID", plugin.ID}, taskInfo), "", nil
 	}
+
+	//adding empty EthernetInterfaces Collection
+	eidata := model.Collection{
+		ODataContext: "/redfish/v1/$metadata#EthernetInterfacesCollection.EthernetInterfacesCollection",
+		ODataID:      "/redfish/v1/Managers/" + managerUUID + "/EthernetInterfaces",
+		ODataType:    "#EthernetInterfacesCollection.EthernetInterfacesCollection",
+		Description:  "EthernetInterfaces collection view",
+		Members: []*model.Link{},
+		MembersCount: 1,
+		Name:         "EthernetInterfaces",
+	}
+	dbdata, err = json.Marshal(eidata)
+	if err != nil {
+		log.Error()
+	}
+	key = "/redfish/v1/Managers/" + managerUUID + "/EthernetInterfaces"
+	dbError := agmodel.SavePluginManagerInfo([]byte(dbdata), "EthernetInterfacesCollection", key)
+	if dbError != nil {
+		errMsg := dbError.Error()
+		log.Error(errMsg)
+
+		return common.GeneralError(http.StatusConflict, response.ResourceAlreadyExists, errMsg, []interface{}{"Plugin", "PluginID", plugin.ID}, taskInfo), "", nil
+	}
+
+	//adding NetworkProtocol
+	networkProtocol := model.NetworkProtocol{
+		ODataID:      "/redfish/v1/Managers/" + managerUUID + "/NetworkProtocol",
+		ODataType:    "#ManagerNetworkProtocol.ManagerNetworkProtocol",
+		Description:  "NetworkProtocol",
+		ID:			  "NetworkProtocol",
+		Name:         "NetworkProtocol",
+	}
+	dbdata, err = json.Marshal(networkProtocol)
+	if err != nil {
+		log.Error()
+	}
+
+	key = "/redfish/v1/Managers/" + managerUUID + "/NetworkProtocol"
+	dbError = agmodel.SavePluginManagerInfo([]byte(dbdata), "NetworkProtocol", key)
+	if dbError != nil {
+		errMsg := dbError.Error()
+		log.Error(errMsg)
+
+		return common.GeneralError(http.StatusConflict, response.ResourceAlreadyExists, errMsg, []interface{}{"Plugin", "PluginID", plugin.ID}, taskInfo), "", nil
+	}
+
 	// saving all plugin manager data
 	var listMembers = make([]agresponse.ListMember, 0)
 	for oid, data := range managersData {

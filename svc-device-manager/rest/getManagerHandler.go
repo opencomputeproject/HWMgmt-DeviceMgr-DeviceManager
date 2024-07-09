@@ -6,6 +6,7 @@ import (
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/context"
 	"net/http"
+	"time"
 )
 
 type managerHandler struct {
@@ -35,10 +36,32 @@ func createDmManager(cfg config.Config) model.Manager {
 		ODataID:         "/ODIM/v1/Managers/" + cfg.RootServiceUUID,
 		ODataType:       "#Manager.v1_13_0.Manager",
 		Name:            deviceManagerName,
-		ManagerType:     "Service",
+		ManagerType:     "RackManager",
 		ID:              cfg.RootServiceUUID,
 		UUID:            cfg.RootServiceUUID,
 		FirmwareVersion: cfg.FirmwareVersion,
-		Status:          &model.Status{State: "Enabled"},
+		Status:          &model.Status{State: "Enabled", Health: "OK", HealthRollup: "OK"},
+		DateTime:        time.Now().Format(time.RFC3339),
+		DateTimeLocalOffset: "+00:00",
+		Description:	"Device Manager",
+		Model:			"Device Manager",
+		ServiceEntryPointUUID: cfg.RootServiceUUID,
+		PowerState: 	"On",
+		SerialConsole:	model.SerialConsole{},
+		EthernetInterfaces:  	&model.Link{
+			Oid: "/redfish/v1/Managers/" + cfg.RootServiceUUID + "/EthernetInterfaces",
+		},
+		NetworkProtocol: 		&model.Link{
+			Oid: "/redfish/v1/Managers/" + cfg.RootServiceUUID + "/NetworkProtocol",
+		},
+		LogServices:	&model.Link{
+			Oid: "/redfish/v1/Managers/" + cfg.RootServiceUUID + "/LogServices",
+		},
+		Links:	&model.ManagerLinks{
+			ManagerForChassis:  []model.Link{},
+			ManagerForServers:  []model.Link{},
+			ManagerForManagers: []model.Link{},
+			ManagerInChassis: 	&model.Link{},
+		},
 	}
 }

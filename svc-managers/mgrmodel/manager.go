@@ -43,9 +43,9 @@ type Manager struct {
 	Status                  *Status            `json:"Status,omitempty"`
 	HostInterfaces          *OdataID           `json:"HostInterfaces,omitempty"`
 	SerialInterfaces        *OdataID           `json:"SerialInterfaces,omitempty"`
-	EthernetInterfaces      *OdataID           `json:"EthernetInterfaces,omitempty"`
+	EthernetInterfaces      *dmtf.Link           `json:"EthernetInterfaces,omitempty"`
 	LogServices             *dmtf.Link         `json:"LogServices,omitempty"`
-	NetworkProtocol         *OdataID           `json:"NetworkProtocol,omitempty"`
+	NetworkProtocol         *dmtf.Link           `json:"NetworkProtocol,omitempty"`
 	VirtualMedia            *OdataID           `json:"VirtualMedia,omitempty"`
 	CommandShell            *CommandShell      `json:"CommandShell,omitempty"`
 	GraphicalConsole        *GraphicalConsole  `json:"GraphicalConsole,omitempty"`
@@ -76,8 +76,9 @@ type Manager struct {
 
 // Status struct is to define the status of the manager
 type Status struct {
-	State  string `json:"State"`
-	Health string `json:"Health"`
+	State  			string `json:"State"`
+	Health 			string `json:"Health"`
+	HealthRollup 	string	  `json:"HealthRollup"`
 }
 
 // OdataID is link
@@ -129,6 +130,10 @@ type RAManager struct {
 	State           string     `json:"State"`
 	Description     string     `json:"Description"`
 	LogServices     *dmtf.Link `json:"LogServices"`
+	HealthRollup	string	   `json:"HealthRollup"`
+	ServiceEntryPointUUID	string       `json:"ServiceEntryPointUUID,omitempty"`
+	NetworkProtocol         *dmtf.Link   `json:"NetworkProtocol,omitempty"`
+	EthernetInterfaces 		*dmtf.Link   `json:"EthernetInterfaces,omitempty"`
 	Links           *Links     `json:"Links,omitempty"`
 	Health          string     `json:"Health"`
 	Model           string     `json:"Model"`

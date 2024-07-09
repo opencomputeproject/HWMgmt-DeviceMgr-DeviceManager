@@ -15,6 +15,7 @@
 package system
 
 import (
+	"regexp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -552,6 +553,58 @@ func isFileExist(existingFiles []string, substr string) bool {
 	}
 	return fileExist
 }
+func addEmptyManagersCollections(managerUUID string) {
+	
+	//adding empty EthernetInterfaces Collection
+	entriesdata := dmtf.Collection{
+		ODataContext: "/redfish/v1/$metadata#EthernetInterfacesCollection.EthernetInterfacesCollection",
+		ODataID:      "/redfish/v1/Managers/" + managerUUID + "/EthernetInterfaces",
+		ODataType:    "#EthernetInterfacesCollection.EthernetInterfacesCollection",
+		Description:  "EthernetInterfaces collection view",
+		Members: 	[]*dmtf.Link{},
+		MembersCount: 1,
+		Name:         "EthernetInterfaces",
+	}
+	dbdata, err := json.Marshal(entriesdata)
+	if err != nil {
+		log.Error()
+	}
+	key := "/redfish/v1/Managers/" + managerUUID + "/EthernetInterfaces"
+	agmodel.GenericSave([]byte(dbdata), "EthernetInterfacesCollection", key)
+
+	//adding NetworkProtocol
+	networkProtocol := dmtf.NetworkProtocol{
+		ODataID:      "/redfish/v1/Managers/" + managerUUID + "/NetworkProtocol",
+		ODataType:    "#ManagerNetworkProtocol.ManagerNetworkProtocol",
+		Description:  "NetworkProtocol",
+		ID:			  "NetworkProtocol",
+		Name:         "NetworkProtocol",
+	}
+	dbdata, err = json.Marshal(networkProtocol)
+	if err != nil {
+		log.Error()
+	}
+
+	key = "/redfish/v1/Managers/" + managerUUID + "/NetworkProtocol"
+	agmodel.GenericSave([]byte(dbdata), "NetworkProtocol", key)
+
+	//adding empty LogService Collection
+	entriesdata = dmtf.Collection{
+		ODataContext: "/redfish/v1/$metadata#LogServicesCollection.LogServicesCollection",
+		ODataID:      "/redfish/v1/Managers/" + managerUUID + "/LogServices",
+		ODataType:    "#LogServicesCollection.LogServicesCollection",
+		Description:  "Logs view",
+		Members: []*dmtf.Link{},
+		MembersCount: 1,
+		Name:         "Logs",
+	}
+	dbdata, err = json.Marshal(entriesdata)
+	if err != nil {
+		log.Error()
+	}
+	key = "/redfish/v1/Managers/" + managerUUID + "/LogServices"
+	agmodel.GenericSave([]byte(dbdata), "LogServicesCollection", key)
+}
 
 func (h *respHolder) getAllRootInfo(taskID string, progress int32, alottedWork int32, req getResourceRequest, resourceList []string) int32 {
 	resourceName := req.OID
@@ -643,7 +696,7 @@ func (h *respHolder) getSystemInfo(taskID string, progress int32, alottedWork in
 		}
 
 	}
-	updatedResourceData := updateResourceDataWithUUID(string(body), req.DeviceUUID)
+	updatedResourceData := updateResourceDataWithUUID(string(body), req.DeviceUUID, req.Plugin.ManagerUUID)
 	// persist the response with table ComputerSystem  and key as system UUID + Oid Needs relook TODO
 	err = agmodel.GenericSave([]byte(updatedResourceData), "ComputerSystem", oidKey)
 	if err != nil {
@@ -733,7 +786,7 @@ func (h *respHolder) getStorageInfo(progress int32, alottedWork int32, req getRe
 	computeSystemUUID := systemData["UUID"].(string)
 	oidKey := keyFormation(oid, computeSystemID, req.DeviceUUID)
 
-	updatedResourceData := updateResourceDataWithUUID(string(body), req.DeviceUUID)
+	updatedResourceData := updateResourceDataWithUUID(string(body), req.DeviceUUID, req.Plugin.ManagerUUID)
 	// persist the response with table Storage
 	resourceName := getResourceName(req.OID, true)
 	err = agmodel.GenericSave([]byte(updatedResourceData), resourceName, oidKey)
@@ -873,11 +926,10 @@ func (h *respHolder) getIndivdualInfo(taskID string, progress int32, alottedWork
 	}
 	oid := resource["@odata.id"].(string)
 	resourceID := resource["Id"].(string)
-
 	oidKey := keyFormation(oid, resourceID, req.DeviceUUID)
-
+	
 	//replacing the uuid while saving the data
-	updatedResourceData := updateResourceDataWithUUID(string(body), req.DeviceUUID)
+	updatedResourceData := updateResourceDataWithUUID(string(body), req.DeviceUUID, req.Plugin.ManagerUUID)
 	// persist the response with table resource and key as system UUID + Oid Needs relook TODO
 	err = agmodel.GenericSave([]byte(updatedResourceData), resourceName, oidKey)
 	if err != nil {
@@ -942,7 +994,7 @@ func (h *respHolder) getResourceDetails(taskID string, progress int32, alottedWo
 	resourceName := getResourceName(req.OID, memberFlag)
 
 	//replacing the uuid while saving the data
-	updatedResourceData := updateResourceDataWithUUID(string(body), req.DeviceUUID)
+	updatedResourceData := updateResourceDataWithUUID(string(body), req.DeviceUUID, req.Plugin.ManagerUUID)
 	// persist the response with table resourceName and key as system UUID + Oid Needs relook TODO
 	err = agmodel.GenericSave([]byte(updatedResourceData), resourceName, oidKey)
 	if err != nil {
@@ -1192,13 +1244,16 @@ func (e *ExternalInterface) rollbackInMemory(resourceURI string) {
 	}
 }
 
-func updateResourceDataWithUUID(resourceData, uuid string) string {
+func updateResourceDataWithUUID(resourceData, uuid, managerUUID string) string {
 	//replacing the uuid while saving the data
 	//to replace the id of system
 	var updatedResourceData = strings.Replace(resourceData, "/redfish/v1/Systems/", "/redfish/v1/Systems/"+uuid+".", -1)
 	updatedResourceData = strings.Replace(updatedResourceData, "/redfish/v1/systems/", "/redfish/v1/Systems/"+uuid+".", -1)
 	// to replace the id in managers
-	updatedResourceData = strings.Replace(updatedResourceData, "/redfish/v1/Managers/", "/redfish/v1/Managers/"+uuid+".", -1)
+
+	re := regexp.MustCompile("Managers/.+?\"")
+	updatedResourceData = string(re.ReplaceAll([]byte(updatedResourceData), []byte("Managers/"+uuid+"."+managerUUID+"\"")))
+
 	// to replace id in chassis
 	updatedResourceData = strings.Replace(updatedResourceData, "/redfish/v1/Chassis/", "/redfish/v1/Chassis/"+uuid+".", -1)
 
@@ -1457,7 +1512,7 @@ func (e *ExternalInterface) getTeleInfo(taskID string, progress, alottedWork int
 		return progress
 	}
 	//replacing the uuid while saving the data
-	updatedResourceData := updateResourceDataWithUUID(string(body), req.DeviceUUID)
+	updatedResourceData := updateResourceDataWithUUID(string(body), req.DeviceUUID, req.Plugin.ManagerUUID)
 
 	updatedResourceData, err = e.createWildCard(updatedResourceData, resourceName, req.OID)
 	if err != nil {

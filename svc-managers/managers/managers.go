@@ -129,11 +129,11 @@ func (e *ExternalInterface) GetManagers(req *managersproto.ManagerRequest) respo
 			managerData["Description"] = "BMC Manager"
 		}
 		//adding RemoteAccountService object to manager response
-		if _, ok := managerData["RemoteAccountService"]; !ok {
+		/* if _, ok := managerData["RemoteAccountService"]; !ok {
 			managerData["RemoteAccountService"] = map[string]string{
 				"@odata.id": "/redfish/v1/Managers/" + req.ManagerID + "/RemoteAccountService",
 			}
-		}
+		} */
 		//adding PowerState
 		if _, ok := managerData["PowerState"]; !ok {
 			managerData["PowerState"] = "On"
@@ -237,14 +237,17 @@ func (e *ExternalInterface) getManagerDetails(id string) (mgrmodel.Manager, erro
 		ID:              mgrData.ID,
 		UUID:            mgrData.UUID,
 		FirmwareVersion: mgrData.FirmwareVersion,
+		ServiceEntryPointUUID: mgrData.ServiceEntryPointUUID,
 		Status: &mgrmodel.Status{
 			State:  mgrData.State,
 			Health: mgrData.Health,
+			HealthRollup: mgrData.HealthRollup,
 		},
 		Links: &mgrmodel.Links{
 			ManagerForChassis:  chassisLink,
 			ManagerForServers:  serverLink,
 			ManagerForManagers: managerLink,
+			ManagerInChassis: 	&dmtf.Link{},
 		},
 		Description:         mgrData.Description,
 		LogServices:         mgrData.LogServices,
@@ -252,6 +255,8 @@ func (e *ExternalInterface) getManagerDetails(id string) (mgrmodel.Manager, erro
 		DateTime:            time.Now().Format(time.RFC3339),
 		DateTimeLocalOffset: "+00:00",
 		PowerState:          mgrData.PowerState,
+		NetworkProtocol: 	 mgrData.NetworkProtocol,
+		EthernetInterfaces:  mgrData.EthernetInterfaces,
 	}, nil
 }
 
